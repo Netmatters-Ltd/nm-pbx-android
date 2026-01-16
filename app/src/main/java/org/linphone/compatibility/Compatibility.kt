@@ -92,8 +92,7 @@ class Compatibility {
             }
             return arrayOf(
                 Manifest.permission.READ_CONTACTS,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.CAMERA
+                Manifest.permission.RECORD_AUDIO
             )
         }
 

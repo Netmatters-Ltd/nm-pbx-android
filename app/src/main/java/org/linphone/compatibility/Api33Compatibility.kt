@@ -32,8 +32,7 @@ class Api33Compatibility {
             return arrayOf(
                 Manifest.permission.POST_NOTIFICATIONS,
                 Manifest.permission.READ_CONTACTS,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.CAMERA
+                Manifest.permission.RECORD_AUDIO
             )
         }
 
