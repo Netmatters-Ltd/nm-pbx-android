@@ -38,21 +38,17 @@ import org.linphone.databinding.WelcomeActivityBinding
 import org.linphone.ui.GenericActivity
 import org.linphone.ui.assistant.AssistantActivity
 import org.linphone.ui.welcome.fragment.WelcomePage1Fragment
-import org.linphone.ui.welcome.fragment.WelcomePage2Fragment
-import org.linphone.ui.welcome.fragment.WelcomePage3Fragment
 import org.linphone.utils.AppUtils
 
 class WelcomeActivity : GenericActivity() {
     companion object {
         private const val TAG = "[Welcome Activity]"
-        private const val PAGES = 3
+        private const val PAGES = 1
     }
 
     private lateinit var binding: WelcomeActivityBinding
 
     private lateinit var viewPager: ViewPager2
-
-    private val pageChangedCallback = PageChangedCallback()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -74,33 +70,15 @@ class WelcomeActivity : GenericActivity() {
         val pagerAdapter = ScreenSlidePagerAdapter(this)
         viewPager.adapter = pagerAdapter
 
-        binding.dotsIndicator.attachTo(viewPager)
-
-        binding.setSkipClickListener {
-            Log.i("$TAG User clicked on 'skip' button, going to Assistant")
-            goToAssistant()
-        }
+        binding.next.text = AppUtils.getString(R.string.start)
+        binding.skip.visibility = View.GONE
 
         binding.setNextClickListener {
-            if (viewPager.currentItem == PAGES - 1) {
-                Log.i(
-                    "$TAG User clicked on 'start' button, leaving activity and going into Assistant"
-                )
-                goToAssistant()
-            } else {
-                viewPager.currentItem += 1
-            }
+            Log.i(
+                "$TAG User clicked on 'start' button, leaving activity and going into Assistant"
+            )
+            goToAssistant()
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewPager.registerOnPageChangeCallback(pageChangedCallback)
-    }
-
-    override fun onPause() {
-        viewPager.unregisterOnPageChangeCallback(pageChangedCallback)
-        super.onPause()
     }
 
     private fun goToAssistant() {
@@ -114,24 +92,8 @@ class WelcomeActivity : GenericActivity() {
         override fun getItemCount(): Int = PAGES
 
         override fun createFragment(position: Int): Fragment {
-            return when (position) {
-                0 -> WelcomePage1Fragment()
-                1 -> WelcomePage2Fragment()
-                else -> WelcomePage3Fragment()
-            }
+            return WelcomePage1Fragment()
         }
     }
 
-    private inner class PageChangedCallback : ViewPager2.OnPageChangeCallback() {
-        override fun onPageSelected(position: Int) {
-            Log.i("$TAG Current page is [$position]")
-            if (position == PAGES - 1) {
-                binding.next.text = AppUtils.getString(R.string.start)
-                binding.skip.visibility = View.INVISIBLE
-            } else {
-                binding.next.text = AppUtils.getString(R.string.next)
-                binding.skip.visibility = View.VISIBLE
-            }
-        }
-    }
 }
