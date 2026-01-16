@@ -2,7 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- To be able to display contacts list & match calling/called numbers -->
@@ -22,6 +27,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <!-- Needed for Android 14
     https://developer.android.com/about/versions/14/behavior-changes-14#fgs-types -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <!-- Required for foreground service started when a push is being received,
@@ -157,7 +163,7 @@
         <service
             android:name=".core.CoreInCallService"
             android:exported="false"
-            android:foregroundServiceType="phoneCall|microphone"
+            android:foregroundServiceType="phoneCall|camera|microphone"
             android:stopWithTask="false"
             android:label="@string/app_name" />
 
