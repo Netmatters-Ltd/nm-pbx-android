@@ -26,7 +26,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.UiThread
-import androidx.navigation.fragment.findNavController
 import org.linphone.R
 import org.linphone.core.tools.Log
 import org.linphone.databinding.HelpFragmentBinding
@@ -69,12 +68,12 @@ class HelpFragment : GenericMainFragment() {
             goBack()
         }
 
-        binding.setDebugClickListener {
-            if (findNavController().currentDestination?.id == R.id.helpFragment) {
-                val action = HelpFragmentDirections.actionHelpFragmentToDebugFragment()
-                findNavController().navigate(action)
-            }
-        }
+//        binding.setDebugClickListener {
+//            if (findNavController().currentDestination?.id == R.id.helpFragment) {
+//                val action = HelpFragmentDirections.actionHelpFragmentToDebugFragment()
+//                findNavController().navigate(action)
+//            }
+//        }
 
         binding.setUserGuideClickListener {
             val url = getString(R.string.website_user_guide_url)

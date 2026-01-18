@@ -21,7 +21,6 @@ package org.linphone.ui.welcome
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
@@ -71,7 +70,6 @@ class WelcomeActivity : GenericActivity() {
         viewPager.adapter = pagerAdapter
 
         binding.next.text = AppUtils.getString(R.string.start)
-        binding.skip.visibility = View.GONE
 
         binding.setNextClickListener {
             Log.i(

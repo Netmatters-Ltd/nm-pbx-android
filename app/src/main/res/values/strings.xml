@@ -109,11 +109,11 @@
         <item quantity="other">%s files being downloaded</item>
     </plurals>
     <string name="notification_file_transfer_upload_download_message" translatable="false">%s, %s</string>
-    <string name="notification_keep_app_alive_message">Click to open</string>
+    <string name="notification_keep_app_alive_message">Tap to open</string>
 
     <!-- First screens user see when app is installed and started -->
     <string name="welcome_page_title">Welcome</string>
-    <string name="welcome_page_subtitle">to &appName;</string>
+    <string name="welcome_page_subtitle"></string>
     <string name="welcome_page_1_message"></string>
     <string name="welcome_page_2_title">Secured</string>
     <string name="welcome_page_2_message">Your communications are safe thanks to our <b>end-to-end encryption</b>.</string>

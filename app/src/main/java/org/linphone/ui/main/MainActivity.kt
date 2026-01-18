@@ -70,7 +70,6 @@ import org.linphone.utils.PasswordDialogModel
 import org.linphone.ui.main.sso.fragment.SingleSignOnFragmentDirections
 import org.linphone.ui.main.viewmodel.MainViewModel
 import org.linphone.ui.main.viewmodel.SharedMainViewModel
-import org.linphone.ui.welcome.WelcomeActivity
 import org.linphone.utils.AppUtils
 import org.linphone.utils.DialogUtils
 import org.linphone.utils.Event
@@ -580,11 +579,13 @@ class MainActivity : GenericActivity() {
     private fun handleMainIntent(intent: Intent) {
         coreContext.postOnCoreThread { core ->
             if (corePreferences.firstLaunch) {
-                Log.i("$TAG First time Linphone 6.0 has been started, showing Welcome activity")
+                Log.i("$TAG First time Linphone 6.0 has been started, showing Assistant activity (skipping welcome)")
                 corePreferences.firstLaunch = false
                 coreContext.postOnMainThread {
                     try {
-                        startActivity(Intent(this, WelcomeActivity::class.java))
+                        val assistantIntent = Intent(this, AssistantActivity::class.java)
+                        assistantIntent.putExtra(AssistantActivity.SKIP_LANDING_EXTRA, true)
+                        startActivity(assistantIntent)
                     } catch (ise: IllegalStateException) {
                         Log.e("$TAG Can't start activity: $ise")
                     }
@@ -724,7 +725,7 @@ class MainActivity : GenericActivity() {
                 val action = ConversationsListFragmentDirections.actionGlobalConversationsListFragment()
                 val options = NavOptions.Builder()
                 options.apply {
-                    setPopUpTo(R.id.helpFragment, true)
+                    setPopUpTo(R.id.debugFragment, true)
                     setLaunchSingleTop(true)
                 }
                 findNavController().navigate(action, options.build())

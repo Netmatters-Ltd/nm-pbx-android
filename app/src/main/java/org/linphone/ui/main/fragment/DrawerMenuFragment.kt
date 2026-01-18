@@ -90,12 +90,6 @@ class DrawerMenuFragment : GenericMainFragment() {
             (requireActivity() as MainActivity).closeDrawerMenu()
         }
 
-        binding.setHelpClickedListener {
-            val navController = (requireActivity() as MainActivity).findNavController()
-            navController.navigate(R.id.action_global_helpFragment)
-            (requireActivity() as MainActivity).closeDrawerMenu()
-        }
-
         binding.setQuitClickedListener {
             coreContext.stopKeepAliveService()
 

@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Note: For true tiling with VectorDrawables, you'd need to use this in code with a custom solution.
+     This creates a horizontally repeating pattern for typical screen widths. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:left="0dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="21dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="42dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="63dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="84dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="105dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="126dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="147dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="168dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="189dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="210dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="231dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="252dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="273dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="294dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="315dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="336dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="357dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="378dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="399dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="420dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="441dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="462dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="483dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="504dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="525dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="546dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="567dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="588dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="609dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="630dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="651dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="672dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="693dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="714dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="735dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="756dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="777dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="798dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="819dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="840dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="861dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="882dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="903dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="924dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="945dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="966dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="987dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1008dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1029dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1050dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1071dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1092dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1113dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1134dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1155dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1176dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1197dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1218dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1239dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1260dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1281dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1302dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1323dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1344dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1365dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1386dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1407dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1428dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1449dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1470dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1491dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1512dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1533dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1554dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1575dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1596dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1617dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1638dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1659dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1680dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1701dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1722dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1743dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1764dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1785dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1806dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1827dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1848dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1869dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1890dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+    <item
+        android:left="1911dp"
+        android:width="21dp"
+        android:drawable="@drawable/dots" />
+</layer-list>

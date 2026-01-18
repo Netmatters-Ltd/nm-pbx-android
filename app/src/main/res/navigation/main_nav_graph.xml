@@ -157,30 +157,6 @@
         app:launchSingleTop="true"/>
 
     <fragment
-        android:id="@+id/helpFragment"
-        android:name="org.linphone.ui.main.help.fragment.HelpFragment"
-        android:label="HelpFragment"
-        tools:layout="@layout/help_fragment" >
-        <action
-            android:id="@+id/action_helpFragment_to_debugFragment"
-            app:destination="@id/debugFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left"
-            app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right"
-            app:launchSingleTop="true" />
-    </fragment>
-
-    <action
-        android:id="@+id/action_global_helpFragment"
-        app:destination="@id/helpFragment"
-        app:enterAnim="@anim/slide_in_right"
-        app:exitAnim="@anim/slide_out_left"
-        app:popEnterAnim="@anim/slide_in_left"
-        app:popExitAnim="@anim/slide_out_right"
-        app:launchSingleTop="true"/>
-
-    <fragment
         android:id="@+id/recordingsListFragment"
         android:name="org.linphone.ui.main.recordings.fragment.RecordingsListFragment"
         android:label="RecordingsListFragment"
