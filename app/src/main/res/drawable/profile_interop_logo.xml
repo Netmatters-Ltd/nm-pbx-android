@@ -7,14 +7,14 @@
   <path
       android:pathData="M41.868,11.55V34.649C41.868,35.415 41.563,36.149 41.022,36.69C40.48,37.232 39.746,37.536 38.98,37.536H12.401L9.099,42.609C9.092,42.617 9.084,42.623 9.075,42.629C8.557,43.069 7.899,43.311 7.219,43.311C6.795,43.31 6.377,43.217 5.993,43.037C5.494,42.807 5.072,42.438 4.778,41.975C4.483,41.511 4.328,40.973 4.331,40.424V11.55C4.331,10.784 4.635,10.049 5.177,9.508C5.718,8.966 6.453,8.662 7.219,8.662H38.98C39.746,8.662 40.48,8.966 41.022,9.508C41.563,10.049 41.868,10.784 41.868,11.55Z">
     <aapt:attr name="android:fillColor">
-      <gradient 
+      <gradient
           android:startX="66.137"
           android:startY="-10.699"
           android:endX="-17.264"
           android:endY="60.058"
           android:type="linear">
-        <item android:offset="0" android:color="#FFFF9730"/>
-        <item android:offset="1" android:color="#B2FFB266"/>
+        <item android:offset="0" android:color="#FF25af4b"/>
+        <item android:offset="1" android:color="#FFa4cd3a"/>
       </gradient>
     </aapt:attr>
   </path>
@@ -24,14 +24,14 @@
   <path
       android:pathData="M33.462,29.607V52.487C33.462,53.245 33.767,53.973 34.308,54.509C34.85,55.045 35.584,55.347 36.35,55.347H62.93L66.232,60.371C66.239,60.379 66.247,60.385 66.255,60.391C66.774,60.827 67.432,61.067 68.112,61.067C68.536,61.066 68.954,60.973 69.338,60.795C69.837,60.567 70.259,60.202 70.553,59.743C70.848,59.284 71.003,58.751 71,58.207V29.607C71,28.848 70.696,28.121 70.154,27.584C69.613,27.048 68.878,26.747 68.112,26.747H36.35C35.584,26.747 34.85,27.048 34.308,27.584C33.767,28.121 33.462,28.848 33.462,29.607Z">
     <aapt:attr name="android:fillColor">
-      <gradient 
+      <gradient
           android:startX="9.192"
           android:startY="7.569"
           android:endX="91.927"
           android:endY="78.436"
           android:type="linear">
-        <item android:offset="0" android:color="#FFFF9730"/>
-        <item android:offset="1" android:color="#B2FFB266"/>
+        <item android:offset="0" android:color="#FF25af4b"/>
+        <item android:offset="1" android:color="#FFa4cd3a"/>
       </gradient>
     </aapt:attr>
   </path>
