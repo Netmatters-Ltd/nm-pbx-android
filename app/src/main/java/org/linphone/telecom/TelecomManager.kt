@@ -107,16 +107,14 @@ class TelecomManager
     fun onCallCreated(call: Call) {
         Log.i("$TAG Call to [${call.remoteAddress.asStringUriOnly()}] created in state [${call.state}]")
 
-        // Check if this Call object has already been registered with Telecom
+        // Mark this Call as being registered before starting async work
+        // add() returns false if the call was already in the set, making this check atomic
         // This prevents duplicate registration when calls go through OutgoingProgress twice
         // due to SIP authentication (401/407 responses cause OutgoingProgress -> OutgoingInit -> OutgoingProgress)
-        if (registeredCalls.contains(call)) {
+        if (!registeredCalls.add(call)) {
             Log.i("$TAG Call to [${call.remoteAddress.asStringUriOnly()}] has already been registered with Telecom, skipping duplicate registration")
             return
         }
-
-        // Mark this Call as being registered before starting async work
-        registeredCalls.add(call)
 
         val address = call.callLog.remoteAddress
         val uri = address.asStringUriOnly().toUri()
