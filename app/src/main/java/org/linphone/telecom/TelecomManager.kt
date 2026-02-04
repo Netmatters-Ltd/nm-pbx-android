@@ -24,6 +24,7 @@ import androidx.annotation.WorkerThread
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.CallException
 import androidx.core.telecom.CallsManager
+import java.util.Collections
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,7 +54,7 @@ class TelecomManager
     // Track Call objects that have been registered with Telecom to prevent duplicate registration
     // This is needed because calls can transition OutgoingProgress -> OutgoingInit -> OutgoingProgress
     // during SIP authentication (401/407 responses)
-    private val registeredCalls = mutableSetOf<Call>()
+    private val registeredCalls = Collections.synchronizedSet(mutableSetOf<Call>())
 
     private val coreListener = object : CoreListenerStub() {
         @WorkerThread
