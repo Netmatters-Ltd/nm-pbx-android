@@ -10,7 +10,7 @@ For simplicity we redefined "NotoSansFont" to be Pippins, rather than updating a
 
 ## Naming
 
-The application and the service as a whole is all called "NM PBX".
+The application and the service as a whole is all called "NMPBX".
 
 It is provided by "Netmatters".
 
