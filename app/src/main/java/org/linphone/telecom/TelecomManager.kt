@@ -24,6 +24,7 @@ import androidx.annotation.WorkerThread
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.CallException
 import androidx.core.telecom.CallsManager
+import java.util.Collections
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +51,11 @@ class TelecomManager
 
     private val map = HashMap<String, TelecomCallControlCallback>()
 
+    // Track Call objects that have been registered with Telecom to prevent duplicate registration
+    // This is needed because calls can transition OutgoingProgress -> OutgoingInit -> OutgoingProgress
+    // during SIP authentication (401/407 responses)
+    private val registeredCalls = Collections.synchronizedSet(mutableSetOf<Call>())
+
     private val coreListener = object : CoreListenerStub() {
         @WorkerThread
         override fun onCallStateChanged(
@@ -60,12 +66,16 @@ class TelecomManager
         ) {
             if (state == Call.State.IncomingReceived || state == Call.State.OutgoingProgress) {
                 onCallCreated(call)
+            } else if (state == Call.State.Released || state == Call.State.Error) {
+                // Clean up when call ends
+                registeredCalls.remove(call)
             }
         }
 
         @WorkerThread
         override fun onLastCallEnded(core: Core) {
             currentlyFollowedCalls = 0
+            registeredCalls.clear()
         }
     }
 
@@ -96,6 +106,15 @@ class TelecomManager
     @WorkerThread
     fun onCallCreated(call: Call) {
         Log.i("$TAG Call to [${call.remoteAddress.asStringUriOnly()}] created in state [${call.state}]")
+
+        // Mark this Call as being registered before starting async work
+        // add() returns false if the call was already in the set, making this check atomic
+        // This prevents duplicate registration when calls go through OutgoingProgress twice
+        // due to SIP authentication (401/407 responses cause OutgoingProgress -> OutgoingInit -> OutgoingProgress)
+        if (!registeredCalls.add(call)) {
+            Log.i("$TAG Call to [${call.remoteAddress.asStringUriOnly()}] has already been registered with Telecom, skipping duplicate registration")
+            return
+        }
 
         val address = call.callLog.remoteAddress
         val uri = address.asStringUriOnly().toUri()
@@ -186,12 +205,16 @@ class TelecomManager
                 }
             } catch (ce: CallException) {
                 Log.e("$TAG Failed to add call to Telecom's CallsManager: $ce")
+                registeredCalls.remove(call)
             } catch (se: SecurityException) {
                 Log.e("$TAG Security exception trying to add call to Telecom's CallsManager: $se")
+                registeredCalls.remove(call)
             } catch (ise: IllegalArgumentException) {
                 Log.e("$TAG Illegal argument exception trying to add call to Telecom's CallsManager: $ise")
+                registeredCalls.remove(call)
             } catch (e: Exception) {
                 Log.e("$TAG Exception trying to add call to Telecom's CallsManager: $e")
+                registeredCalls.remove(call)
             }
         }
     }
