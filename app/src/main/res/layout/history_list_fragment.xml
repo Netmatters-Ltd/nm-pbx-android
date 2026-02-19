@@ -34,7 +34,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="?attr/color_main1_500">
+                android:background="?attr/color_main1_700_dark">
 
                 <androidx.constraintlayout.widget.Group
                     android:layout_width="wrap_content"

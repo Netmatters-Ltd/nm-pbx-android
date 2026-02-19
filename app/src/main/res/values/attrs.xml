@@ -16,6 +16,7 @@
         <attr name="color_main1_300" format="color"/>
         <attr name="color_main1_500" format="color"/>
         <attr name="color_main1_700" format="color"/>
+        <attr name="color_main1_700_dark" format="color"/>
 
         <attr name="color_main2_000" format="color"/>
         <attr name="color_main2_100" format="color"/>
