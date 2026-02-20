@@ -44,7 +44,7 @@
     <string name="conversation_one_to_one_hidden_subject" translatable="false">Dummy subject</string>
 
     <!-- Common words -->
-    <string name="sip_address">SIP address</string>
+    <string name="sip_address">Number</string>
     <string name="device_id">Device ID</string>
     <string name="sip_address_display_name">Display name</string>
     <string name="sip_address_domain">Domain</string>
@@ -121,7 +121,7 @@
     <string name="welcome_page_3_message">Built on an open source application in use since <b>2001</b>.</string>
 
     <!-- Generic toasts -->
-    <string name="sip_address_copied_to_clipboard_toast">SIP address copied into clipboard</string>
+    <string name="sip_address_copied_to_clipboard_toast">Number copied into clipboard</string>
     <string name="new_account_configured_toast">New account configured</string>
     <string name="default_account_connection_state_error_toast">Connection error!</string>
     <string name="file_successfully_exported_to_media_store_toast">File has been exported to native gallery</string>
@@ -453,7 +453,7 @@
     <string name="contact_editor_dialog_abort_confirmation_message">All changes will be lost</string>
     <string name="contact_editor_mandatory_field_not_filled_toast">Please fill either first name, last name or company name</string>
 
-    <string name="contact_details_numbers_and_addresses_title">Phone numbers &amp; SIP addresses</string>
+    <string name="contact_details_numbers_and_addresses_title">Phone numbers</string>
     <string name="contact_details_company_name">Company:</string>
     <string name="contact_details_job_title">Job title:</string>
     <string name="contact_details_trust_title">Trust</string>
@@ -475,7 +475,7 @@
     <string name="contact_dialog_devices_trust_help_message">Check all of your contact devices to make sure your communications will be secured an unaltered.\nWhen all will be verified, you\'ll reach maximum trust level.</string>
     <string name="contact_dialog_delete_title">Delete %s?</string>
     <string name="contact_dialog_delete_message">This contact will be definitively removed.</string>
-    <string name="contact_dialog_pick_phone_number_or_sip_address_title">Choose a number or a SIP address</string>
+    <string name="contact_dialog_pick_phone_number_or_sip_address_title">Choose a number</string>
 
     <string name="contact_presence_status_online">Online</string>
     <string name="contact_presence_status_was_online_on">Online on %s</string>
@@ -803,7 +803,7 @@
     <string name="conference_participant_joining_text">Joining…</string>
     <string name="conference_participant_paused_text">Paused</string>
     <string name="conference_active_speaker_is_screen_sharing">is sharing its screen</string>
-    <string name="conference_failed_to_add_participant_invalid_address_toast">Invalid SIP address, can\'t be added to conference</string>
+    <string name="conference_failed_to_add_participant_invalid_address_toast">Invalid number, can\'t be added to conference</string>
 
     <string name="conference_layout_grid">Mosaic</string>
     <string name="conference_layout_active_speaker">Speaker</string>
@@ -824,7 +824,7 @@
     <!-- Various menu entries -->
     <string name="menu_add_address_to_contacts">Add to contacts</string>
     <string name="menu_see_existing_contact">See contact</string>
-    <string name="menu_copy_sip_address">Copy SIP address</string>
+    <string name="menu_copy_sip_address">Copy number</string>
     <string name="menu_copy_phone_number">Copy phone number</string>
     <string name="menu_delete_history">Delete history</string>
     <string name="menu_delete_selected_item">Delete</string>

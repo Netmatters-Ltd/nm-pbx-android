@@ -12,8 +12,9 @@
     <color name="orange_main_100">#C8F5D6</color>
     <color name="orange_main_100_alpha_50">#80C8F5D6</color>
     <color name="orange_main_300">#77D99A</color>
-    <color name="orange_main_500">#25af4b</color>
+    <color name="orange_main_500">#25AF4B</color>
     <color name="orange_main_700">#1A7D35</color>
+    <color name="orange_main_700_dark">#0E2826</color>
 
     <color name="gray_main2_100">#EEF6F8</color>
     <color name="gray_main2_200">#DFECF2</color>

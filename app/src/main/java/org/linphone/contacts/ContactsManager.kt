@@ -813,7 +813,7 @@ fun Friend.getListOfSipAddressesAndPhoneNumbers(listener: ContactNumberOrAddress
         val data = ContactNumberOrAddressModel(
             this,
             address,
-            address.asStringUriOnly(),
+            address.username ?: address.asStringUriOnly(),
             true, // SIP addresses are always enabled
             listener,
             true
@@ -843,7 +843,7 @@ fun Friend.getListOfSipAddressesAndPhoneNumbers(listener: ContactNumberOrAddress
                         val data = ContactNumberOrAddressModel(
                             this,
                             address,
-                            address.asStringUriOnly(),
+                            address.username ?: address.asStringUriOnly(),
                             true, // SIP addresses are always enabled
                             listener,
                             true
