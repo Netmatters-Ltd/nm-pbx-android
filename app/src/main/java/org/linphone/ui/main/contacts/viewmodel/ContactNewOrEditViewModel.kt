@@ -385,8 +385,10 @@ class ContactNewOrEditViewModel
             val data = address.value.value.orEmpty().trim()
             if (data.isNotEmpty()) {
                 val fullData = if (!data.contains("@")) {
-                    val domain = LinphoneUtils.getDefaultAccount()?.params?.identityAddress?.domain
-                    if (domain != null) "sip:$data@$domain" else data
+                    val identityAddress = LinphoneUtils.getDefaultAccount()?.params?.identityAddress
+                    val domain = identityAddress?.domain
+                    val scheme = identityAddress?.scheme ?: "sip"
+                    if (domain != null) "$scheme:$data@$domain" else data
                 } else {
                     data
                 }

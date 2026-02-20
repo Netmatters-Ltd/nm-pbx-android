@@ -213,7 +213,7 @@ class AccountProfileViewModel
                 isCurrentlySelectedModeSecure.postValue(isEndToEndEncryptionMandatory())
                 registerEnabled.postValue(account.params.isRegisterEnabled)
 
-                sipAddress.postValue(account.params.identityAddress?.asStringUriOnly())
+                sipAddress.postValue(account.params.identityAddress?.username ?: account.params.identityAddress?.asStringUriOnly())
                 displayName.postValue(account.params.identityAddress?.displayName)
                 showDeviceId.postValue(false)
 
