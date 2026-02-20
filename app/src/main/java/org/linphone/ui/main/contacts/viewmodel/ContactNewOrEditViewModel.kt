@@ -41,6 +41,7 @@ import org.linphone.ui.GenericViewModel
 import org.linphone.ui.main.contacts.model.NewOrEditNumberOrAddressModel
 import org.linphone.utils.Event
 import org.linphone.utils.FileUtils
+import org.linphone.utils.LinphoneUtils
 import androidx.core.net.toUri
 
 class ContactNewOrEditViewModel
@@ -108,7 +109,7 @@ class ContactNewOrEditViewModel
                 }
 
                 for (address in friend.addresses) {
-                    addSipAddress(address.asStringUriOnly())
+                    addSipAddress(address.username ?: address.asStringUriOnly())
                 }
                 for (number in friend.phoneNumbersWithLabel) {
                     addPhoneNumber(number.phoneNumber, number.label)
@@ -336,7 +337,7 @@ class ContactNewOrEditViewModel
 
             for (address in friend.addresses) {
                 val found = sipAddresses.find {
-                    it.isSip && it.value.value.orEmpty() == address.asStringUriOnly()
+                    it.isSip && it.value.value.orEmpty() == (address.username ?: address.asStringUriOnly())
                 }
                 if (found == null) return true
             }
@@ -344,7 +345,7 @@ class ContactNewOrEditViewModel
                 if (address.value.value.orEmpty().isEmpty()) continue
 
                 val found = friend.addresses.find {
-                    it.asStringUriOnly() == address.value.value.orEmpty()
+                    (it.username ?: it.asStringUriOnly()) == address.value.value.orEmpty()
                 }
                 if (found == null) return true
             }
@@ -383,7 +384,13 @@ class ContactNewOrEditViewModel
         for (address in sipAddresses) {
             val data = address.value.value.orEmpty().trim()
             if (data.isNotEmpty()) {
-                val parsedAddress = core.interpretUrl(data, false)
+                val fullData = if (!data.contains("@")) {
+                    val domain = LinphoneUtils.getDefaultAccount()?.params?.identityAddress?.domain
+                    if (domain != null) "sip:$data@$domain" else data
+                } else {
+                    data
+                }
+                val parsedAddress = core.interpretUrl(fullData, false)
                 if (parsedAddress != null) {
                     toKeep.add(parsedAddress)
                 }

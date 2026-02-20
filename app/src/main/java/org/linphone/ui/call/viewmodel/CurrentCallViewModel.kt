@@ -1199,11 +1199,7 @@ class CurrentCallViewModel
         canBePaused.postValue(canCallBePaused())
 
         val address = call.callLog.remoteAddress
-        val uri = if (corePreferences.onlyDisplaySipUriUsername) {
-            address.username ?: ""
-        } else {
-            LinphoneUtils.getAddressAsCleanStringUriOnly(address)
-        }
+        val uri = address.username ?: LinphoneUtils.getAddressAsCleanStringUriOnly(address)
         displayedAddress.postValue(uri)
 
         val model = if (conferenceInfo != null) {
