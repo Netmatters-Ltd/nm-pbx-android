@@ -49,13 +49,7 @@ class ConversationContactOrSuggestionModel
             address.username ?: address.domain.orEmpty()
         }
 
-    // Hide SIP address and only show username for suggestions
-    // on the same domain as the currently selected account
-    val sipUri = if (!defaultAccountDomain.isNullOrEmpty() && defaultAccountDomain == address.domain) {
-        address.username
-    } else {
-        address.asStringUriOnly()
-    }
+    val sipUri = address.username ?: address.asStringUriOnly()
 
     val initials = AppUtils.getInitials(conversationSubject ?: name)
 
