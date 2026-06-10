@@ -86,6 +86,7 @@ class MainActivity : GenericActivity() {
         private const val HISTORY_FRAGMENT_ID = 2
         private const val CHAT_FRAGMENT_ID = 3
         private const val MEETINGS_FRAGMENT_ID = 4
+        private const val EXTENSIONS_FRAGMENT_ID = 5
 
         const val ARGUMENTS_CHAT = "Chat"
         const val ARGUMENTS_CONVERSATION_ID = "ConversationId"
@@ -405,6 +406,9 @@ class MainActivity : GenericActivity() {
         currentlyDisplayedAuthDialog = null
 
         val defaultFragmentId = when (sharedViewModel.currentlyDisplayedFragment.value) {
+            R.id.extensionsListFragment -> {
+                EXTENSIONS_FRAGMENT_ID
+            }
             R.id.contactsListFragment -> {
                 CONTACTS_FRAGMENT_ID
             }
@@ -499,6 +503,14 @@ class MainActivity : GenericActivity() {
                 val navOptions = navOptionsBuilder.build()
                 val args = bundleOf()
                 when (defaultFragmentId) {
+                    EXTENSIONS_FRAGMENT_ID -> {
+                        findNavController().addOnDestinationChangedListener(destinationListener)
+                        findNavController().navigate(
+                            R.id.extensionsListFragment,
+                            args,
+                            navOptions
+                        )
+                    }
                     CONTACTS_FRAGMENT_ID -> {
                         findNavController().addOnDestinationChangedListener(destinationListener)
                         findNavController().navigate(

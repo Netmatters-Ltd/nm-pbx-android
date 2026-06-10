@@ -222,6 +222,7 @@ dependencies {
     implementation(libs.androidx.media)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.slidingpanelayout)
+    implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.window)
     implementation(libs.androidx.gridlayout)
     implementation(libs.androidx.security.crypto.ktx)

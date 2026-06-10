@@ -70,6 +70,8 @@ class CoreContext
 
     val contactsManager = ContactsManager()
 
+    val presenceManager = PresenceManager()
+
     val notificationsManager = NotificationsManager(context)
 
     val telecomManager = TelecomManager(context)
@@ -246,6 +248,7 @@ class CoreContext
             if (state == GlobalState.On) {
                 // Wait for GlobalState.ON as some settings modification won't be saved
                 // in RC file if Core isn't ON
+                CardDavProvisioningManager.applyIfPresent(core)
                 onCoreStarted()
             } else if (state == GlobalState.Shutdown) {
                 onCoreStopped()
@@ -260,6 +263,10 @@ class CoreContext
         ) {
             Log.i("$TAG Configuring state changed [$status], message is [$message]")
             if (status == ConfiguringState.Successful) {
+                // Remote provisioning XML has just been downloaded & applied; (re)create the CardDAV
+                // friend list from the freshly-fetched [carddav_provision] section.
+                CardDavProvisioningManager.applyIfPresent(core)
+
                 val accounts = core.accountList
                 if (core.defaultAccount == null && accounts.isNotEmpty()) {
                     val firstAccount = accounts.firstOrNull()
@@ -478,6 +485,12 @@ class CoreContext
                     digestAuthInfoPendingPasswordUpdate = authInfo
                     digestAuthenticationRequestedEvent.postValue(Event(identity))
                 }
+                AuthMethod.Basic -> {
+                    // CardDAV servers fronted by the NMPBX portal challenge with HTTP Basic;
+                    // fulfill it from the provisioned [carddav_provision] credentials.
+                    Log.i("$TAG Authentication requested method is Basic, fulfilling from provisioning config")
+                    CardDavProvisioningManager.fulfillHttpBasicChallenge(core, authInfo)
+                }
                 AuthMethod.Tls -> {
                     Log.w("$TAG Authentication requested method is TLS, not doing anything...")
                 }
@@ -679,6 +692,10 @@ class CoreContext
         notificationsManager.onCoreStarted(core, oldVersion < 600000) // Re-create channels when migrating from a non 6.0 version
         Log.i("$TAG Started contacts, telecom & notifications managers")
 
+        // Stage 1 of presence restore: publish the saved status before registration completes,
+        // so the SDK's automatic PUBLISH on register already carries the correct status
+        presenceManager.loadSavedPresence()
+
         if (corePreferences.keepServiceAlive) {
             if (activityMonitor.isInForeground() || corePreferences.autoStart) {
                 Log.i("$TAG Keep alive service is enabled and either app is in foreground or auto start is enabled, starting it")
@@ -793,11 +810,14 @@ class CoreContext
     @UiThread
     fun onForeground() {
         postOnCoreThread {
-            // We can't rely on defaultAccount?.params?.isPublishEnabled
-            // as it will be modified by the SDK when changing the presence status
             if (corePreferences.publishPresence) {
-                Log.i("$TAG App is in foreground, PUBLISHING presence as Online")
-                core.consolidatedPresence = ConsolidatedPresence.Online
+                // On Android the Core stays alive in background (we don't call core.stop()), so a
+                // foreground transition usually does NOT trigger a re-REGISTER. We therefore can't
+                // rely on the registration listener: re-enable publishing here and restore the
+                // saved/server status directly.
+                Log.i("$TAG App is in foreground, re-enabling presence publishing")
+                setPublishEnabledOnDefaultAccount(true)
+                presenceManager.restoreOrGoOnline()
             }
 
             if (corePreferences.keepServiceAlive && !keepAliveServiceStarted) {
@@ -809,15 +829,26 @@ class CoreContext
     @UiThread
     fun onBackground() {
         postOnCoreThread {
-            // We can't rely on defaultAccount?.params?.isPublishEnabled
-            // as it will be modified by the SDK when changing the presence status
             if (corePreferences.publishPresence) {
-                Log.i("$TAG App is in background, un-PUBLISHING presence info")
-                // We don't use ConsolidatedPresence.Busy but Offline to do an unsubscribe,
-                // Flexisip will handle the Busy status depending on other devices
-                core.consolidatedPresence = ConsolidatedPresence.Offline
+                // Disabling publish makes the SDK send a PUBLISH with Expires: 0, clearing the
+                // server's stored tuple so stale presence doesn't accumulate across app restarts.
+                // Intentional divergence from iOS: we do NOT call core.stop() here, as that would
+                // break push notifications / keep-alive on Android.
+                Log.i("$TAG App is in background, disabling presence publishing")
+                setPublishEnabledOnDefaultAccount(false)
             }
         }
+    }
+
+    @WorkerThread
+    private fun setPublishEnabledOnDefaultAccount(enabled: Boolean) {
+        val account = core.defaultAccount ?: return
+        val params = account.params
+        if (params.isPublishEnabled == enabled) return
+        val clone = params.clone()
+        clone.isPublishEnabled = enabled
+        account.params = clone
+        Log.i("$TAG Set publishEnabled=[$enabled] on default account")
     }
 
     @WorkerThread

@@ -114,10 +114,6 @@ class ContactFragment : SlidingPaneChildFragment() {
             viewModel.exportContactAsVCard()
         }
 
-        binding.setDeleteClickListener {
-            showDeleteConfirmationDialog()
-        }
-
         sharedViewModel.isSlidingPaneSlideable.observe(viewLifecycleOwner) { slideable ->
             viewModel.showBackButton.value = slideable
         }
@@ -360,33 +356,6 @@ class ContactFragment : SlidingPaneChildFragment() {
                         coreContext.startCall(address, forceZRTP = true)
                     }
                 }
-                dialog.dismiss()
-            }
-        }
-
-        dialog.show()
-    }
-
-    private fun showDeleteConfirmationDialog() {
-        val model = ConfirmationDialogModel()
-        val dialog = DialogUtils.getDeleteContactConfirmationDialog(
-            requireActivity(),
-            model,
-            viewModel.contact.value?.name?.value ?: ""
-        )
-
-        model.dismissEvent.observe(viewLifecycleOwner) {
-            it.consume {
-                dialog.dismiss()
-            }
-        }
-
-        model.confirmEvent.observe(viewLifecycleOwner) {
-            it.consume {
-                Log.w(
-                    "$TAG Deleting contact [${viewModel.contact.value?.name?.value}]"
-                )
-                viewModel.deleteContact()
                 dialog.dismiss()
             }
         }

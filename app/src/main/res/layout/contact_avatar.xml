@@ -49,7 +49,7 @@
             android:background="@drawable/led_background"
             android:padding="@dimen/avatar_presence_badge_padding"
             android:contentDescription="@{model.presenceStatus == ConsolidatedPresence.Online ? @string/content_description_contact_online : @string/content_description_contact_away}"
-            app:presenceIcon="@{model.presenceStatus}"
+            app:presenceUserStatus="@{model.presenceUserStatus}"
             app:hidePresence="@{hidePresence}"
             app:layout_constraintEnd_toEndOf="@id/avatar"
             app:layout_constraintBottom_toBottomOf="@id/avatar" />

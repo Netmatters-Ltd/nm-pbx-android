@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bc_white"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="20dp">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/default_text_style_600"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:text="@string/presence_status_heading"
+            android:textColor="@color/gray_main2_800"
+            android:textSize="16sp" />
+
+        <include
+            android:id="@+id/row_available"
+            layout="@layout/presence_picker_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" />
+
+        <include
+            android:id="@+id/row_away"
+            layout="@layout/presence_picker_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/row_busy"
+            layout="@layout/presence_picker_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/row_dnd"
+            layout="@layout/presence_picker_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:background="?attr/color_separator" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/default_text_style"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:text="@string/presence_custom_status_label"
+            android:textColor="@color/gray_main2_500"
+            android:textSize="12sp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/shape_presence_note_background">
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/note"
+                style="@style/default_text_style"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="88dp"
+                android:gravity="top|start"
+                android:background="@android:color/transparent"
+                android:paddingStart="12dp"
+                android:paddingEnd="36dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:inputType="textMultiLine|textCapSentences"
+                android:maxLength="80"
+                android:imeOptions="actionDone"
+                android:hint="@string/presence_custom_status_hint"
+                android:textColorHint="@color/gray_main2_400"
+                android:textColor="@color/gray_main2_700"
+                android:textSize="14sp" />
+
+            <ImageView
+                android:id="@+id/clear"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/content_description_clear_filter"
+                android:src="@drawable/x"
+                android:visibility="gone"
+                app:tint="@color/gray_main2_400" />
+
+        </FrameLayout>
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/char_count"
+            style="@style/default_text_style"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:gravity="end"
+            android:textColor="@color/gray_main2_400"
+            android:textSize="11sp" />
+
+    </LinearLayout>
+
+</ScrollView>

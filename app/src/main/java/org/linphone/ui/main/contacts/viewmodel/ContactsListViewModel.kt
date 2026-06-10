@@ -22,6 +22,7 @@ package org.linphone.ui.main.contacts.viewmodel
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.text.Collator
@@ -66,6 +67,21 @@ class ContactsListViewModel
     val searchInProgress = MutableLiveData<Boolean>()
 
     val isDefaultAccountLinphone = MutableLiveData<Boolean>()
+
+    // When true, this list shows only internal PBX extensions; when false, only external contacts.
+    // Set by the fragment before the list is built, based on the displayed destination.
+    var extensionsMode: Boolean = false
+
+    // Drives the pull-to-refresh spinner while a manual CardDAV sync is running.
+    val cardDavRefreshing = MutableLiveData<Boolean>()
+
+    // The VM has no LifecycleOwner, so we observeForever and clean up in onCleared()
+    private val cardDavSyncObserver = Observer<Event<Boolean>> { event ->
+        event?.consume { success ->
+            Log.i("$TAG CardDAV sync finished (success [$success]), stopping refresh indicator")
+            cardDavRefreshing.value = false
+        }
+    }
 
     val vCardTerminatedEvent: MutableLiveData<Event<Pair<String, File>>> by lazy {
         MutableLiveData<Event<Pair<String, File>>>()
@@ -117,6 +133,8 @@ class ContactsListViewModel
         fetchInProgress.value = true
         showFavourites.value = corePreferences.showFavoriteContacts
         showFilter.value = !corePreferences.hidePhoneNumbers
+        cardDavRefreshing.value = false
+        coreContext.contactsManager.cardDavSyncResultEvent.observeForever(cardDavSyncObserver)
 
         coreContext.postOnCoreThread { core ->
             domainFilter = corePreferences.contactsFilter
@@ -141,6 +159,7 @@ class ContactsListViewModel
 
     @UiThread
     override fun onCleared() {
+        coreContext.contactsManager.cardDavSyncResultEvent.removeObserver(cardDavSyncObserver)
         coreContext.postOnCoreThread {
             magicSearch.removeListener(magicSearchListener)
             favouritesMagicSearch.removeListener(favouritesMagicSearchListener)
@@ -157,6 +176,19 @@ class ContactsListViewModel
                 currentFilter,
                 domainFilter
             )
+        }
+    }
+
+    @UiThread
+    fun refreshContacts() {
+        Log.i("$TAG Manual refresh requested, synchronising CardDAV friend list(s) from server")
+        cardDavRefreshing.value = true
+        coreContext.postOnCoreThread {
+            val synchronising = coreContext.contactsManager.synchronizeCardDavFriendLists()
+            if (!synchronising) {
+                // Nothing to sync, so no completion event will arrive; clear the spinner now
+                cardDavRefreshing.postValue(false)
+            }
         }
     }
 
@@ -274,15 +306,22 @@ class ContactsListViewModel
         currentFilter = filter
         previousFilter = filter
 
+        // We split contacts into Extensions (internal) and Contacts (external) ourselves via
+        // isInternal, mirroring iOS which loads the whole friend list and partitions in memory.
+        // A non-empty Magic search domain ("*" = SIP-only, or a specific domain) would drop
+        // phone-number-only external contacts before we ever see them, so we always load the
+        // full list here and let filterByMode() do the partitioning.
+        val searchDomain = ""
+
         Log.i(
-            "$TAG Asking Magic search for contacts matching filter [$filter], domain [$domain] and in sources Friends/LDAP/CardDAV"
+            "$TAG Asking Magic search for contacts matching filter [$filter], domain [$searchDomain] (caller domain [$domain] ignored) and in sources Friends/LDAP/CardDAV"
         )
         searchInProgress.postValue(filter.isNotEmpty())
 
         if (filter.isEmpty()) {
             favouritesMagicSearch.getContactsListAsync(
                 filter,
-                domain,
+                searchDomain,
                 MagicSearch.Source.FavoriteFriends.toInt(),
                 MagicSearch.Aggregation.Friend
             )
@@ -290,7 +329,7 @@ class ContactsListViewModel
 
         magicSearch.getContactsListAsync(
             filter,
-            domain,
+            searchDomain,
             MagicSearch.Source.Friends.toInt() or MagicSearch.Source.LdapServers.toInt() or MagicSearch.Source.RemoteCardDAV.toInt(),
             MagicSearch.Aggregation.Friend
         )
@@ -306,6 +345,7 @@ class ContactsListViewModel
 
         for (result in results) {
             val friend = result.friend
+
             if (friend != null) {
                 if (friend.refKey.orEmpty().isEmpty()) {
                     if (friend.vcard != null) {
@@ -333,7 +373,8 @@ class ContactsListViewModel
             model.isFavourite.postValue(starred)
 
             if (!favourites && firstLoad && count == 20) {
-                contactsList.postValue(list)
+                // Filter the incremental slice too, otherwise wrong-tab contacts flash briefly
+                contactsList.postValue(filterByMode(list))
             }
         }
 
@@ -342,15 +383,26 @@ class ContactsListViewModel
             collator.compare(model1.friend.name, model2.friend.name)
         }
 
+        val filteredList = filterByMode(list)
+
         searchInProgress.postValue(false)
         if (favourites) {
-            favouritesList.postValue(list)
+            favouritesList.postValue(filteredList)
         } else {
-            contactsList.postValue(list)
+            contactsList.postValue(filteredList)
             firstLoad = false
         }
 
-        Log.i("$TAG Processed [${results.size}] results into [${list.size} contacts]")
+        Log.i(
+            "$TAG Processed [${results.size}] results into [${filteredList.size} contacts] (extensionsMode [$extensionsMode])"
+        )
+    }
+
+    @WorkerThread
+    private fun filterByMode(list: ArrayList<ContactAvatarModel>): ArrayList<ContactAvatarModel> {
+        return ArrayList(
+            list.filter { if (extensionsMode) it.isInternal else !it.isInternal }
+        )
     }
 
     @WorkerThread

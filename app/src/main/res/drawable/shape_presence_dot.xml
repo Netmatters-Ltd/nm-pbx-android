@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A solid circle whose fill is set at runtime via tint to the presence status colour.
+     The 1.5dp white stroke matches the spec; on a white sheet background it is invisible,
+     and on the avatar badge the white ring is provided by the led_background + padding. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/bc_white" />
+    <stroke
+        android:width="1.5dp"
+        android:color="@color/bc_white" />
+</shape>

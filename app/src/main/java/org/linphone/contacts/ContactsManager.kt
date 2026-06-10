@@ -33,6 +33,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.text.isDigitsOnly
+import androidx.lifecycle.MutableLiveData
 import androidx.loader.app.LoaderManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +63,7 @@ import org.linphone.ui.main.contacts.model.ContactNumberOrAddressClickListener
 import org.linphone.ui.main.contacts.model.ContactNumberOrAddressModel
 import org.linphone.ui.main.model.isEndToEndEncryptionMandatory
 import org.linphone.utils.AppUtils
+import org.linphone.utils.Event
 import org.linphone.utils.ImageUtils
 import org.linphone.utils.LinphoneUtils
 import org.linphone.utils.PhoneNumberUtils
@@ -79,6 +81,10 @@ class ContactsManager
     }
 
     private var nativeContactsLoaded = false
+
+    // Fires when a CardDAV friend list finishes synchronising (true = success, false = failure).
+    // Used by the contacts list to stop the pull-to-refresh spinner once a manual sync completes.
+    val cardDavSyncResultEvent = MutableLiveData<Event<Boolean>>()
 
     private val listeners = arrayListOf<ContactsListener>()
 
@@ -263,9 +269,11 @@ class ContactsManager
             when (status) {
                 FriendList.SyncStatus.Successful -> {
                     notifyContactsListChanged()
+                    cardDavSyncResultEvent.postValue(Event(true))
                 }
                 FriendList.SyncStatus.Failure -> {
                     Log.e("$TAG Friend list [${friendList.displayName}] sync failed: $message")
+                    cardDavSyncResultEvent.postValue(Event(false))
                 }
                 else -> {}
             }
@@ -276,6 +284,7 @@ class ContactsManager
         @WorkerThread
         override fun onFriendListCreated(core: Core, friendList: FriendList) {
             Log.i("$TAG Friend list [${friendList.displayName}] created")
+            applySubscriptionPolicy(friendList)
             friendList.addListener(friendListListener)
         }
 
@@ -593,6 +602,7 @@ class ContactsManager
         core.addListener(coreListener)
         for (list in core.friendsLists) {
             Log.i("$TAG Found existing friend list [${list.displayName}]")
+            applySubscriptionPolicy(list)
             list.addListener(friendListListener)
         }
 
@@ -606,14 +616,31 @@ class ContactsManager
             ShortcutUtils.createShortcutsToChatRooms(context)
         }
 
-        for (list in core.friendsLists) {
+        synchronizeCardDavFriendLists()
+    }
+
+    /**
+     * Triggers a re-sync of every configured CardDAV friend list from its server. Used both at
+     * startup and by the contacts list's pull-to-refresh. Returns true if at least one CardDAV
+     * list was found to synchronise, so callers can avoid showing a refresh spinner that would
+     * never be cleared (sync completion is reported via [cardDavSyncResultEvent]).
+     */
+    @WorkerThread
+    fun synchronizeCardDavFriendLists(): Boolean {
+        var synchronising = false
+        for (list in coreContext.core.friendsLists) {
             if (list.type == FriendList.Type.CardDAV && !list.uri.isNullOrEmpty()) {
                 Log.i(
                     "$TAG Found a CardDAV friend list with name [${list.displayName}] and URI [${list.uri}], synchronizing it"
                 )
                 list.synchronizeFriendsFromServer()
+                synchronising = true
             }
         }
+        if (!synchronising) {
+            Log.i("$TAG No CardDAV friend list to synchronise")
+        }
+        return synchronising
     }
 
     @WorkerThread
@@ -637,12 +664,27 @@ class ContactsManager
             temporaryFriendList.isDatabaseStorageEnabled = false
             temporaryFriendList.displayName = name
             temporaryFriendList.type = FriendList.Type.ApplicationCache
+            temporaryFriendList.isSubscriptionsEnabled = false
             core.addFriendList(temporaryFriendList)
             Log.i(
                 "$TAG Created temporary friend list with name [$name]"
             )
         }
         return temporaryFriendList
+    }
+
+    @WorkerThread
+    private fun applySubscriptionPolicy(friendList: FriendList) {
+        // Only CardDAV-provisioned lists (the PBX directory of internal extensions) send SIP
+        // SUBSCRIBE. Local/device and manually-added lists must not, both to match the iOS visuals
+        // and to avoid leaking off-server phone numbers. This is per friend-list, not per friend.
+        val shouldSubscribe = friendList.type == FriendList.Type.CardDAV
+        if (friendList.isSubscriptionsEnabled != shouldSubscribe) {
+            Log.i(
+                "$TAG Setting subscriptionsEnabled=[$shouldSubscribe] for friend list [${friendList.displayName}] of type [${friendList.type}]"
+            )
+            friendList.isSubscriptionsEnabled = shouldSubscribe
+        }
     }
 
     @WorkerThread

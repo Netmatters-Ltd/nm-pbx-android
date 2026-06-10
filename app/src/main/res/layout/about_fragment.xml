@@ -168,7 +168,6 @@
                         android:textColor="@color/gray_main2_500"
                         android:text="@string/settings_about_source_subtitle"
                         app:layout_constraintTop_toBottomOf="@id/source_title"
-                        app:layout_constraintBottom_toBottomOf="@id/source_icon"
                         app:layout_constraintStart_toEndOf="@id/source_icon"
                         app:layout_constraintEnd_toStartOf="@id/source_arrow" />
 

@@ -25,18 +25,15 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.ContactsContract
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
-import android.widget.PopupWindow
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.UiThread
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
@@ -45,7 +42,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.io.File
 import org.linphone.R
 import org.linphone.core.tools.Log
-import org.linphone.databinding.ContactsListFilterPopupMenuBinding
 import org.linphone.databinding.ContactsListFragmentBinding
 import org.linphone.ui.main.MainActivity
 import org.linphone.ui.main.contacts.adapter.ContactsListAdapter
@@ -174,12 +170,14 @@ class ContactsListFragment : AbstractMainFragment() {
             }
         }
 
-        binding.setOnNewContactClicked {
-            sharedViewModel.showNewContactEvent.value = Event(true)
+        binding.swipeRefresh.setColorSchemeResources(R.color.main1_500)
+        binding.swipeRefresh.setOnRefreshListener {
+            Log.i("$TAG Pull-to-refresh triggered, asking for a CardDAV re-sync")
+            listViewModel.refreshContacts()
         }
 
-        binding.setFilterClickListener {
-            showFilterPopupMenu(binding.topBar.extraAction)
+        listViewModel.cardDavRefreshing.observe(viewLifecycleOwner) { refreshing ->
+            binding.swipeRefresh.isRefreshing = refreshing
         }
 
         sharedViewModel.showContactEvent.observe(
@@ -210,13 +208,24 @@ class ContactsListFragment : AbstractMainFragment() {
 
         // AbstractMainFragment related
 
-        listViewModel.title.value = getString(R.string.bottom_navigation_contacts_label)
+        // The same fragment class backs two destinations: Contacts (external) and Extensions
+        // (internal PBX users). The current destination tells us which mode to run in.
+        val extensionsMode = findNavController().currentDestination?.id == R.id.extensionsListFragment
+        listViewModel.extensionsMode = extensionsMode
+
+        listViewModel.title.value = getString(
+            if (extensionsMode) {
+                R.string.bottom_navigation_extensions_label
+            } else {
+                R.string.bottom_navigation_contacts_label
+            }
+        )
         setViewModel(listViewModel)
         initViews(
             binding.slidingPaneLayout,
             binding.topBar,
             binding.bottomNavBar,
-            R.id.contactsListFragment
+            if (extensionsMode) R.id.extensionsListFragment else R.id.contactsListFragment
         )
 
         if (ContextCompat.checkSelfPermission(
@@ -292,58 +301,6 @@ class ContactsListFragment : AbstractMainFragment() {
         } catch (anfe: ActivityNotFoundException) {
             Log.e("$TAG Failed to start intent chooser: $anfe")
         }
-    }
-
-    private fun showFilterPopupMenu(view: View) {
-        val popupView: ContactsListFilterPopupMenuBinding = DataBindingUtil.inflate(
-            LayoutInflater.from(requireContext()),
-            R.layout.contacts_list_filter_popup_menu,
-            null,
-            false
-        )
-        popupView.seeAllSelected = listViewModel.areAllContactsDisplayed.value == true
-        popupView.showLinphoneFilter = listViewModel.isDefaultAccountLinphone.value == true
-
-        val popupWindow = PopupWindow(
-            popupView.root,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        )
-
-        popupView.setNoFilterClickListener {
-            if (listViewModel.areAllContactsDisplayed.value != true) {
-                listViewModel.changeContactsFilter(
-                    onlyLinphoneContacts = false,
-                    onlySipContacts = false
-                )
-            }
-            popupWindow.dismiss()
-        }
-
-        popupView.setLinphoneOnlyClickListener {
-            if (listViewModel.areAllContactsDisplayed.value == true) {
-                listViewModel.changeContactsFilter(
-                    onlyLinphoneContacts = true,
-                    onlySipContacts = false
-                )
-            }
-            popupWindow.dismiss()
-        }
-
-        popupView.setSipOnlyClickListener {
-            if (listViewModel.areAllContactsDisplayed.value == true) {
-                listViewModel.changeContactsFilter(
-                    onlyLinphoneContacts = false,
-                    onlySipContacts = true
-                )
-            }
-            popupWindow.dismiss()
-        }
-
-        // Elevation is for showing a shadow around the popup
-        popupWindow.elevation = 20f
-        popupWindow.showAsDropDown(view, 0, 0, Gravity.BOTTOM)
     }
 
     private fun showDeleteConfirmationDialog(contactModel: ContactAvatarModel) {

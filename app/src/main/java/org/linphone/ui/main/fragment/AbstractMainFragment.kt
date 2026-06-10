@@ -46,6 +46,7 @@ import org.linphone.ui.main.chat.fragment.ConversationsListFragmentDirections
 import org.linphone.ui.main.contacts.fragment.ContactsListFragmentDirections
 import org.linphone.ui.main.history.fragment.HistoryListFragmentDirections
 import org.linphone.ui.main.meetings.fragment.MeetingsListFragmentDirections
+import org.linphone.ui.main.presence.PresencePickerDialogFragment
 import org.linphone.ui.main.viewmodel.AbstractMainViewModel
 import org.linphone.utils.Event
 import org.linphone.utils.SlidingPaneBackPressedCallback
@@ -132,12 +133,26 @@ abstract class AbstractMainFragment : GenericMainFragment() {
             }
         }
 
+        viewModel.openPresencePickerEvent.observe(viewLifecycleOwner) {
+            it.consume {
+                PresencePickerDialogFragment().show(childFragmentManager, "presence")
+            }
+        }
+
         viewModel.searchFilter.observe(viewLifecycleOwner) { filter ->
             viewModel.applyFilter(filter.trim())
         }
 
         viewModel.missedCallsCount.observe(viewLifecycleOwner) {
             sharedViewModel.refreshDrawerMenuAccountsListEvent.value = Event(false)
+        }
+
+        viewModel.navigateToExtensionsEvent.observe(viewLifecycleOwner) {
+            it.consume {
+                if (currentFragmentId != R.id.extensionsListFragment) {
+                    goToExtensionsList()
+                }
+            }
         }
 
         viewModel.navigateToContactsEvent.observe(viewLifecycleOwner) {
@@ -179,6 +194,7 @@ abstract class AbstractMainFragment : GenericMainFragment() {
         }
 
         sharedViewModel.currentlyDisplayedFragment.observe(viewLifecycleOwner) {
+            viewModel.extensionsSelected.value = it == R.id.extensionsListFragment
             viewModel.contactsSelected.value = it == R.id.contactsListFragment
             viewModel.callsSelected.value = it == R.id.historyListFragment
             viewModel.conversationsSelected.value = it == R.id.conversationsListFragment
@@ -347,9 +363,39 @@ abstract class AbstractMainFragment : GenericMainFragment() {
         }
     }
 
+    private fun goToExtensionsList() {
+        Log.i("$TAG Navigating to extensions list")
+        when (currentFragmentId) {
+            R.id.contactsListFragment -> {
+                Log.i("$TAG Leaving contacts list")
+                val action = ContactsListFragmentDirections.actionContactsListFragmentToExtensionsListFragment()
+                navigateTo(action)
+            }
+            R.id.conversationsListFragment -> {
+                Log.i("$TAG Leaving conversations list")
+                val action = ConversationsListFragmentDirections.actionConversationsListFragmentToExtensionsListFragment()
+                navigateTo(action)
+            }
+            R.id.meetingsListFragment -> {
+                Log.i("$TAG Leaving meetings list")
+                val action = MeetingsListFragmentDirections.actionMeetingsListFragmentToExtensionsListFragment()
+                navigateTo(action)
+            }
+            R.id.historyListFragment -> {
+                Log.i("$TAG Leaving history list")
+                val action = HistoryListFragmentDirections.actionHistoryListFragmentToExtensionsListFragment()
+                navigateTo(action)
+            }
+        }
+    }
+
     private fun goToContactsList() {
         Log.i("$TAG Navigating to contacts list")
         when (currentFragmentId) {
+            R.id.extensionsListFragment -> {
+                Log.i("$TAG Leaving extensions list")
+                navigateTo(R.id.action_extensionsListFragment_to_contactsListFragment)
+            }
             R.id.conversationsListFragment -> {
                 Log.i("$TAG Leaving conversations list")
                 val action = ConversationsListFragmentDirections.actionConversationsListFragmentToContactsListFragment()
@@ -371,6 +417,10 @@ abstract class AbstractMainFragment : GenericMainFragment() {
     private fun goToHistoryList() {
         Log.i("$TAG Navigating to history list")
         when (currentFragmentId) {
+            R.id.extensionsListFragment -> {
+                Log.i("$TAG Leaving extensions list")
+                navigateTo(R.id.action_extensionsListFragment_to_historyListFragment)
+            }
             R.id.conversationsListFragment -> {
                 Log.i("$TAG Leaving conversations list")
                 val action = ConversationsListFragmentDirections.actionConversationsListFragmentToHistoryListFragment()
@@ -392,6 +442,10 @@ abstract class AbstractMainFragment : GenericMainFragment() {
     private fun goToConversationsList() {
         Log.i("$TAG Navigating to conversations list")
         when (currentFragmentId) {
+            R.id.extensionsListFragment -> {
+                Log.i("$TAG Leaving extensions list")
+                navigateTo(R.id.action_extensionsListFragment_to_conversationsListFragment)
+            }
             R.id.contactsListFragment -> {
                 Log.i("$TAG Leaving contacts list")
                 val action = ContactsListFragmentDirections.actionContactsListFragmentToConversationsListFragment()
@@ -413,6 +467,10 @@ abstract class AbstractMainFragment : GenericMainFragment() {
     private fun goToMeetingsList() {
         Log.i("$TAG Navigating to meetings list")
         when (currentFragmentId) {
+            R.id.extensionsListFragment -> {
+                Log.i("$TAG Leaving extensions list")
+                navigateTo(R.id.action_extensionsListFragment_to_meetingsListFragment)
+            }
             R.id.conversationsListFragment -> {
                 Log.i("$TAG Leaving conversations list")
                 val action = ConversationsListFragmentDirections.actionConversationsListFragmentToMeetingsListFragment()
@@ -434,6 +492,17 @@ abstract class AbstractMainFragment : GenericMainFragment() {
     private fun navigateTo(action: NavDirections) {
         try {
             findNavController().navigate(action)
+        } catch (e: Exception) {
+            Log.e("$TAG Failed to navigate: $e")
+        }
+    }
+
+    // The Extensions and Contacts destinations share the ContactsListFragment class, so Safe Args
+    // merges them into a single Directions class and drops the Extensions destination's actions.
+    // We navigate those (argument-free) transitions by action resource id instead.
+    private fun navigateTo(@IdRes actionId: Int) {
+        try {
+            findNavController().navigate(actionId)
         } catch (e: Exception) {
             Log.e("$TAG Failed to navigate: $e")
         }

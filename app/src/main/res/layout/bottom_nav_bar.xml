@@ -20,6 +20,24 @@
 
         <androidx.appcompat.widget.AppCompatTextView
             style="@style/bottom_nav_bar_label_style"
+            android:id="@+id/extensions"
+            android:onClick="@{() -> viewModel.navigateToExtensions()}"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:drawableTop="@drawable/users"
+            android:drawablePadding="4dp"
+            android:drawableTint="@{viewModel.extensionsSelected ? @color/main1_500 : @color/main2_600, default=@color/main2_600}"
+            android:text="@string/bottom_navigation_extensions_label"
+            textFont="@{viewModel.extensionsSelected ? NotoSansFont.NotoSansBold : NotoSansFont.NotoSansRegular}"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/contacts"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/bottom_nav_bar_label_style"
             android:id="@+id/contacts"
             android:onClick="@{() -> viewModel.navigateToContacts()}"
             android:layout_width="0dp"
@@ -33,7 +51,7 @@
             textFont="@{viewModel.contactsSelected ? NotoSansFont.NotoSansBold : NotoSansFont.NotoSansRegular}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/calls"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@id/extensions"
             app:layout_constraintTop_toTopOf="parent" />
 
         <androidx.appcompat.widget.AppCompatTextView

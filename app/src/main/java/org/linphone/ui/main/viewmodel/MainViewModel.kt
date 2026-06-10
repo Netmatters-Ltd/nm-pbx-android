@@ -247,6 +247,18 @@ class MainViewModel
                     if (account == core.defaultAccount) {
                         Log.i("$TAG Default account is now registered")
                         removeAlert(DEFAULT_ACCOUNT_DISABLED)
+
+                        // Stage 2 of presence restore: refresh contacts, make sure publishing is
+                        // re-enabled (it gets disabled on background), then sync from the server.
+                        coreContext.contactsManager.notifyContactsListChanged()
+                        val params = account.params
+                        if (!params.isPublishEnabled) {
+                            val clone = params.clone()
+                            clone.isPublishEnabled = true
+                            account.params = clone
+                            Log.i("$TAG Re-enabled presence publishing on default account")
+                        }
+                        coreContext.presenceManager.restoreOrGoOnline()
                     } else {
                         // If no call and no account is in Failed state, hide top bar
                         val found = core.accountList.find {

@@ -22,8 +22,10 @@ package org.linphone.ui.main.viewmodel
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import org.linphone.LinphoneApplication.Companion.coreContext
 import org.linphone.LinphoneApplication.Companion.corePreferences
+import org.linphone.R
 import org.linphone.core.Account
 import org.linphone.core.Call
 import org.linphone.core.ChatMessage
@@ -31,9 +33,11 @@ import org.linphone.core.ChatRoom
 import org.linphone.core.Core
 import org.linphone.core.CoreListenerStub
 import org.linphone.core.GlobalState
+import org.linphone.core.UserPresence
 import org.linphone.core.tools.Log
 import org.linphone.ui.GenericViewModel
 import org.linphone.ui.main.model.AccountModel
+import org.linphone.utils.AppUtils
 import org.linphone.utils.Event
 import org.linphone.utils.LinphoneUtils
 
@@ -48,9 +52,22 @@ open class AbstractMainViewModel
 
     val account = MutableLiveData<AccountModel>()
 
+    // Header presence display (driven by PresenceManager)
+    val presenceStatusLabel = MutableLiveData<String>()
+
+    val presenceNoteWithDot = MutableLiveData<String>()
+
+    val presenceVisible = MutableLiveData<Boolean>()
+
+    val openPresencePickerEvent: MutableLiveData<Event<Boolean>> by lazy {
+        MutableLiveData<Event<Boolean>>()
+    }
+
     val searchBarVisible = MutableLiveData<Boolean>()
 
     val searchFilter = MutableLiveData<String>()
+
+    val extensionsSelected = MutableLiveData<Boolean>()
 
     val contactsSelected = MutableLiveData<Boolean>()
 
@@ -82,6 +99,10 @@ open class AbstractMainViewModel
         MutableLiveData<Event<Boolean>>()
     }
 
+    val navigateToExtensionsEvent: MutableLiveData<Event<Boolean>> by lazy {
+        MutableLiveData<Event<Boolean>>()
+    }
+
     val navigateToContactsEvent: MutableLiveData<Event<Boolean>> by lazy {
         MutableLiveData<Event<Boolean>>()
     }
@@ -99,6 +120,23 @@ open class AbstractMainViewModel
     }
 
     protected var currentFilter = ""
+
+    // The VM has no LifecycleOwner, so we observeForever and clean up in onCleared()
+    private val presenceObserver = Observer<UserPresence> {
+        recomputePresenceDisplay()
+    }
+
+    private val presenceNoteObserver = Observer<String> {
+        recomputePresenceDisplay()
+    }
+
+    private val accountObserver = Observer<AccountModel> {
+        // Push the current presence into the freshly created account model so the header badge
+        // is correct straight away (its own default is Offline)
+        coreContext.presenceManager.currentPresence.value?.let { presence ->
+            it?.presenceUserStatus?.postValue(presence)
+        }
+    }
 
     private val coreListener = object : CoreListenerStub() {
         @WorkerThread
@@ -181,16 +219,46 @@ open class AbstractMainViewModel
 
         searchBarVisible.value = false
         isFilterEmpty.value = true
+
+        coreContext.presenceManager.currentPresence.observeForever(presenceObserver)
+        coreContext.presenceManager.customStatusNote.observeForever(presenceNoteObserver)
+        account.observeForever(accountObserver)
     }
 
     @UiThread
     override fun onCleared() {
         super.onCleared()
 
+        coreContext.presenceManager.currentPresence.removeObserver(presenceObserver)
+        coreContext.presenceManager.customStatusNote.removeObserver(presenceNoteObserver)
+        account.removeObserver(accountObserver)
+
         coreContext.postOnCoreThread { core ->
             core.removeListener(coreListener)
             account.value?.destroy()
         }
+    }
+
+    @UiThread
+    private fun recomputePresenceDisplay() {
+        val presence = coreContext.presenceManager.currentPresence.value ?: UserPresence.Online
+        val note = coreContext.presenceManager.customStatusNote.value.orEmpty()
+        val visible = presence != UserPresence.Offline
+
+        presenceVisible.value = visible
+        presenceStatusLabel.value = if (visible) AppUtils.getString(presence.labelRes()) else ""
+        presenceNoteWithDot.value = if (visible && note.isNotEmpty()) {
+            AppUtils.getFormattedString(R.string.presence_note_with_dot, note)
+        } else {
+            ""
+        }
+
+        account.value?.presenceUserStatus?.postValue(presence)
+    }
+
+    @UiThread
+    fun openPresencePicker() {
+        openPresencePickerEvent.value = Event(true)
     }
 
     @UiThread
@@ -237,6 +305,11 @@ open class AbstractMainViewModel
     fun update() {
         coreContext.postOnCoreThread { core ->
         }
+    }
+
+    @UiThread
+    fun navigateToExtensions() {
+        navigateToExtensionsEvent.value = Event(true)
     }
 
     @UiThread

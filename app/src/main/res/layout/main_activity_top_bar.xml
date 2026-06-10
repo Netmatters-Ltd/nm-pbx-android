@@ -30,7 +30,7 @@
         <androidx.constraintlayout.widget.Group
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:constraint_referenced_ids="drawer_menu, avatar, title, search_toggle"
+            app:constraint_referenced_ids="drawer_menu, avatar, header_info, search_toggle"
             android:visibility="@{viewModel.searchBarVisible ? View.GONE : View.VISIBLE}" />
 
         <androidx.constraintlayout.widget.Group
@@ -43,7 +43,7 @@
             android:id="@+id/background_barrier"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:constraint_referenced_ids="title, search"
+            app:constraint_referenced_ids="avatar, search"
             app:barrierDirection="bottom" />
 
         <ImageView
@@ -63,7 +63,7 @@
 
         <include
             android:id="@+id/avatar"
-            android:onClick="@{() -> viewModel.openDrawerMenu()}"
+            android:onClick="@{() -> viewModel.openPresencePicker()}"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             layout="@layout/contact_avatar"
@@ -72,21 +72,61 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>
 
-        <androidx.appcompat.widget.AppCompatTextView
-            style="@style/default_text_style_800"
-            android:id="@+id/title"
+        <LinearLayout
+            android:id="@+id/header_info"
+            android:onClick="@{() -> viewModel.openPresencePicker()}"
+            android:orientation="vertical"
             android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:gravity="center_vertical"
-            android:text="@{viewModel.title, default=`Title`}"
-            android:textColor="?attr/color_on_main"
-            android:textSize="20sp"
             app:layout_constraintEnd_toStartOf="@id/search_toggle"
             app:layout_constraintStart_toEndOf="@id/avatar"
             app:layout_constraintTop_toTopOf="@id/avatar"
-            app:layout_constraintBottom_toBottomOf="@id/avatar"/>
+            app:layout_constraintBottom_toBottomOf="@id/avatar">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                style="@style/default_text_style"
+                android:id="@+id/presence_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:text="@{viewModel.account.displayName}"
+                android:textColor="?attr/color_on_main"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:id="@+id/presence_status_line"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="@{viewModel.presenceVisible ? View.VISIBLE : View.GONE, default=gone}">
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    style="@style/default_text_style"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:text="@{viewModel.presenceStatusLabel}"
+                    android:textColor="?attr/color_on_main"
+                    android:textSize="11sp" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    style="@style/default_text_style"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:text="@{viewModel.presenceNoteWithDot}"
+                    android:textColor="?attr/color_on_main"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/search_toggle"
@@ -98,9 +138,9 @@
             android:paddingEnd="15dp"
             android:src="@drawable/magnifying_glass"
             android:contentDescription="@string/content_description_open_filter"
-            app:layout_constraintBottom_toBottomOf="@id/title"
+            app:layout_constraintBottom_toBottomOf="@id/avatar"
             app:layout_constraintEnd_toStartOf="@id/extra_action"
-            app:layout_constraintTop_toTopOf="@id/title"
+            app:layout_constraintTop_toTopOf="@id/avatar"
             app:tint="?attr/color_on_main" />
 
         <ImageView
@@ -114,9 +154,9 @@
             android:src="@{extraActionIcon, default=@drawable/dots_three_vertical}"
             android:contentDescription="@{extraActionContentDescription}"
             android:visibility="@{enableExtraAction ? View.VISIBLE : View.GONE, default=gone}"
-            app:layout_constraintBottom_toBottomOf="@id/title"
+            app:layout_constraintBottom_toBottomOf="@id/avatar"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/title"
+            app:layout_constraintTop_toTopOf="@id/avatar"
             app:tint="?attr/color_on_main" />
 
         <ImageView

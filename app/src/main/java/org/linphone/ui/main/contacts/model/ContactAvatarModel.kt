@@ -32,6 +32,7 @@ import org.linphone.core.ConsolidatedPresence
 import org.linphone.core.Friend
 import org.linphone.core.FriendListenerStub
 import org.linphone.core.SecurityLevel
+import org.linphone.core.UserPresence
 import org.linphone.core.tools.Log
 import org.linphone.utils.AppUtils
 import org.linphone.utils.TimestampUtils
@@ -50,9 +51,21 @@ class ContactAvatarModel
 
     val isStored = friend.inList()
 
+    // True when this friend has an address on the default account's domain (an internal PBX
+    // extension), as opposed to an external contact. Mirrors iOS ContactAvatarModel.isInternal.
+    // Recomputed in update() so it refreshes when the default account changes.
+    var isInternal: Boolean = false
+
     val isFavourite = MutableLiveData<Boolean>()
 
     val lastPresenceInfo = MutableLiveData<String>()
+
+    // Row presence display (status label + custom note), hidden when Offline
+    val presenceStatusLabel = MutableLiveData<String>()
+
+    val presenceVisible = MutableLiveData<Boolean>()
+
+    val presenceNoteVisible = MutableLiveData<Boolean>()
 
     val name = MutableLiveData<String>()
 
@@ -70,6 +83,9 @@ class ContactAvatarModel
 
     init {
         presenceStatus.postValue(ConsolidatedPresence.Offline)
+        presenceUserStatus.postValue(UserPresence.Offline)
+        presenceVisible.postValue(false)
+        presenceNoteVisible.postValue(false)
 
         if (friend.addresses.isNotEmpty()) {
             friend.addListener(friendListener)
@@ -93,6 +109,9 @@ class ContactAvatarModel
         initials.postValue(AppUtils.getInitials(friend.name.orEmpty()))
         showTrust.postValue(true)
         picturePath.postValue(getAvatarUri(friend).toString())
+
+        val domain = coreContext.core.defaultAccount?.params?.domain.orEmpty()
+        isInternal = domain.isNotEmpty() && friend.addresses.any { it.domain == domain }
 
         name.postValue(friend.name)
         computePresence(address)
@@ -176,6 +195,36 @@ class ContactAvatarModel
         }
         Log.d("$TAG Friend [${friend.name}] presence status is [$presence]")
         presenceStatus.postValue(presence)
+
+        // Compute the display-level status (spec §5): combine consolidatedPresence with the
+        // person-level RPID activity so Away/Busy/DnD show even when consolidated == Online.
+        val presenceModel = if (address == null) {
+            friend.presenceModel
+        } else {
+            friend.getPresenceModelForUriOrTel(address.asStringUriOnly()) ?: friend.presenceModel
+        }
+        val activityType = presenceModel?.activity?.type
+        val activityDescription = presenceModel?.activity?.description
+        val mapped = UserPresence.from(activityType, activityDescription)
+        val userStatus = when (presence) {
+            ConsolidatedPresence.Online ->
+                if (mapped == UserPresence.Offline) UserPresence.Online else mapped
+            ConsolidatedPresence.Busy ->
+                if (mapped == UserPresence.Online || mapped == UserPresence.Offline) UserPresence.Busy else mapped
+            else -> UserPresence.Offline
+        }
+        presenceActivity.postValue(activityType)
+        presenceUserStatus.postValue(userStatus)
+
+        val note = presenceModel?.getNote(null)?.content.orEmpty()
+        presenceNote.postValue(note)
+
+        val visible = userStatus != UserPresence.Offline
+        presenceVisible.postValue(visible)
+        presenceNoteVisible.postValue(visible && note.isNotEmpty())
+        presenceStatusLabel.postValue(
+            if (visible) AppUtils.getString(userStatus.labelRes()) else ""
+        )
 
         val presenceString = when (presence) {
             ConsolidatedPresence.Online -> {

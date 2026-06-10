@@ -189,6 +189,7 @@
     <string name="assistant_recover_phone_number_account_unavailable_no_push_warning">Push notifications do not seem to be available on your device, but they are mandatory for recovering a phone number account in the mobile app.</string>
 
     <!-- Main navigation items -->
+    <string name="bottom_navigation_extensions_label">Extensions</string>
     <string name="bottom_navigation_contacts_label">Contacts</string>
     <string name="bottom_navigation_calls_label">Calls</string>
     <string name="bottom_navigation_conversations_label">Conversations</string>
@@ -498,6 +499,17 @@
     <string name="contact_presence_status_was_online_yesterday_at">Online yesterday at %s</string>
     <string name="contact_presence_status_away">Away</string>
     <string name="contact_presence_status_do_not_disturb">Do not disturb</string>
+
+    <!-- Presence picker -->
+    <string name="presence_status_heading">Status</string>
+    <string name="presence_status_available">Available</string>
+    <string name="presence_status_away">Away</string>
+    <string name="presence_status_busy">Busy</string>
+    <string name="presence_status_do_not_disturb">Do Not Disturb</string>
+    <string name="presence_custom_status_label">Custom status message</string>
+    <string name="presence_custom_status_hint">What\'s your status?</string>
+    <string name="presence_note_with_dot">· %s</string>
+
     <string name="contact_call_action">Call</string>
     <string name="contact_message_action">Message</string>
     <string name="contact_video_call_action">Video Call</string>

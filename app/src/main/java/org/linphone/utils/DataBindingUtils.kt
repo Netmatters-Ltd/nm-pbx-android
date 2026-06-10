@@ -66,6 +66,7 @@ import org.linphone.R
 import org.linphone.contacts.AbstractAvatarModel
 import org.linphone.contacts.AvatarGenerator
 import org.linphone.core.ConsolidatedPresence
+import org.linphone.core.UserPresence
 import org.linphone.core.tools.Log
 import org.linphone.ui.NotoSansFont
 import org.linphone.ui.call.conference.model.ConferenceParticipantDeviceModel
@@ -267,6 +268,33 @@ fun ImageView.setPresenceIcon(presence: ConsolidatedPresence?, hidePresence: Boo
         else -> R.drawable.led_not_registered
     }
     setImageResource(icon)
+}
+
+@UiThread
+@BindingAdapter("presenceUserStatus")
+fun ImageView.setPresenceUserStatus(status: UserPresence?) {
+    setPresenceUserStatus(status, false)
+}
+
+@UiThread
+@BindingAdapter("presenceUserStatus", "hidePresence")
+fun ImageView.setPresenceUserStatus(status: UserPresence?, hidePresence: Boolean) {
+    val hidden = hidePresence || status == null || status == UserPresence.Offline
+    visibility = if (hidden) View.GONE else View.VISIBLE
+    if (!hidden) {
+        // The white ring comes from the led_background + padding on the badge view; the dot itself
+        // is tinted to the status colour.
+        setImageResource(R.drawable.shape_presence_dot)
+        setColorFilter(context.getColor(status!!.badgeColorRes()), PorterDuff.Mode.SRC_IN)
+    }
+}
+
+@UiThread
+@BindingAdapter("textColorFromPresence")
+fun AppCompatTextView.setTextColorFromPresence(status: UserPresence?) {
+    if (status != null) {
+        setTextColor(context.getColor(status.badgeColorRes()))
+    }
 }
 
 @BindingAdapter("tint", "disableTint")

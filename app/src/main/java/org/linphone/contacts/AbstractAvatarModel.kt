@@ -21,7 +21,9 @@ package org.linphone.contacts
 
 import androidx.lifecycle.MutableLiveData
 import org.linphone.core.ConsolidatedPresence
+import org.linphone.core.PresenceActivity
 import org.linphone.core.SecurityLevel
+import org.linphone.core.UserPresence
 
 abstract class AbstractAvatarModel {
     val trust = MutableLiveData<SecurityLevel>()
@@ -43,4 +45,11 @@ abstract class AbstractAvatarModel {
     val skipInitials = MutableLiveData<Boolean>()
 
     val presenceStatus = MutableLiveData<ConsolidatedPresence>()
+
+    // Display-level presence (combines consolidatedPresence + RPID activity), drives the badge
+    val presenceUserStatus = MutableLiveData<UserPresence>()
+
+    val presenceActivity = MutableLiveData<PresenceActivity.Type?>()
+
+    val presenceNote = MutableLiveData<String>()
 }
