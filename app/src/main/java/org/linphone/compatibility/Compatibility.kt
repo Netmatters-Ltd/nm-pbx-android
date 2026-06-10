@@ -31,6 +31,7 @@ import android.os.Environment
 import android.util.Patterns
 import android.view.View
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.NotificationManagerCompat
 import org.linphone.core.tools.Log
 import org.linphone.mediastream.Version
 
@@ -117,6 +118,12 @@ class Compatibility {
                 return Api33Compatibility.isPostNotificationsPermissionGranted(context)
             }
             return true
+        }
+
+        fun areNotificationsEnabled(context: Context): Boolean {
+            // Works on every API level: reflects both the runtime grant (API 33+)
+            // and the user turning notifications off in the system settings.
+            return NotificationManagerCompat.from(context).areNotificationsEnabled()
         }
 
         fun enterPipMode(activity: Activity): Boolean {

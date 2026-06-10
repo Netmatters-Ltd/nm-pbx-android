@@ -14,6 +14,9 @@
         <variable
             name="viewModel"
             type="org.linphone.ui.assistant.viewmodel.AccountLoginViewModel" />
+        <variable
+            name="qrCodeViewModel"
+            type="org.linphone.ui.assistant.viewmodel.QrCodeViewModel" />
     </data>
 
     <ScrollView
@@ -65,13 +68,72 @@
                 android:text="@string/assistant_scan_qr_code"
                 android:visibility="visible"
                 app:drawableTint="@color/secondary_button_label_color"
-                app:layout_constraintBottom_toTopOf="@+id/mountains"
-                app:layout_constraintDimensionRatio="w,1:1"
+                app:layout_constraintBottom_toTopOf="@+id/provisioning_url_label"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/title"
-                app:layout_constraintVertical_bias="0.5"
+                app:layout_constraintVertical_chainStyle="packed"
+                app:layout_constraintWidth_max="@dimen/button_max_width" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/provisioning_url_label"
+                style="@style/default_text_style"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="24dp"
+                android:gravity="center"
+                android:text="@string/assistant_provisioning_url_explanation"
+                android:textColor="?attr/color_main2_500"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toTopOf="@+id/provisioning_url"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/scan_qr_code"
+                app:layout_constraintWidth_max="@dimen/text_input_max_width" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/provisioning_url"
+                style="@style/default_text_style"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/edit_text_background"
+                android:enabled="@{!qrCodeViewModel.applyInProgress}"
+                android:hint="@string/assistant_provisioning_url_placeholder"
+                android:imeOptions="actionGo"
+                android:inputType="text|textUri"
+                android:maxLines="1"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:text="@={qrCodeViewModel.provisioningUrl}"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toTopOf="@+id/apply_provisioning_url"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/provisioning_url_label"
+                app:layout_constraintWidth_max="@dimen/text_input_max_width" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/apply_provisioning_url"
+                style="@style/primary_button_label_style"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="16dp"
+                android:enabled="@{!qrCodeViewModel.applyInProgress &amp;&amp; qrCodeViewModel.provisioningUrl.length() != 0, default=false}"
+                android:gravity="center"
+                android:onClick="@{() -> qrCodeViewModel.applyRemoteProvisioningUrl()}"
+                android:text="@string/assistant_provisioning_url_submit"
+                app:layout_constraintBottom_toTopOf="@+id/mountains"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/provisioning_url"
                 app:layout_constraintWidth_max="@dimen/button_max_width" />
 
             <ImageView

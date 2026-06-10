@@ -143,6 +143,9 @@
     <string name="assistant_account_login">Login</string>
     <string name="assistant_scan_qr_code">Scan QR code</string>
     <string name="assistant_qr_code_invalid_toast">Invalid QR code!</string>
+    <string name="assistant_provisioning_url_explanation">Prefer not to use the camera? Enter your provisioning URL instead.</string>
+    <string name="assistant_provisioning_url_placeholder">Provisioning URL</string>
+    <string name="assistant_provisioning_url_submit">Apply</string>
     <string name="assistant_login_third_party_sip_account">Use a third party SIP account</string>
     <string name="assistant_login_third_party_sip_account_title">Third party SIP account</string>
     <string name="assistant_login_using_single_sign_on">Single sign on</string>
@@ -318,6 +321,18 @@
     <string name="settings_tunnel_mode_disabled_label">Disabled</string>
     <string name="settings_tunnel_mode_always_label">Always</string>
     <string name="settings_tunnel_mode_auto_label">Auto</string>
+
+    <string name="settings_about_title">About</string>
+    <string name="settings_about_copyright_heading">Copyright</string>
+    <string name="settings_about_copyright_original_title">Linphone for Android (original software)</string>
+    <string name="settings_about_copyright_original_detail">© 2010-2026 Belledonne Communications SARL</string>
+    <string name="settings_about_copyright_netmatters_title">NMPBX for Android (this version)</string>
+    <string name="settings_about_copyright_netmatters_detail">© 2026 Netmatters Ltd</string>
+    <string name="settings_about_source_title">Source code</string>
+    <string name="settings_about_source_subtitle">github.com/Netmatters-Ltd/nm-pbx-android</string>
+    <string name="settings_about_source_url">https://github.com/Netmatters-Ltd/nm-pbx-android</string>
+    <string name="settings_about_license_heading">Licence</string>
+    <string name="about_license_unavailable">Licence text unavailable.</string>
 
     <string name="settings_advanced_title">Advanced settings</string>
     <string name="settings_advanced_print_logs_crashlytics_title">Help developers troubleshoot issues by sending logs to Crashlytics after a crash</string>
@@ -864,6 +879,7 @@
     <string name="generic_address_picker_suggestions_list_title">Suggestions</string>
     <string name="post_notifications_permission_not_granted">Post notifications permission not granted!</string>
     <string name="full_screen_intent_permission_not_granted">Show incoming call permission not granted!</string>
+    <string name="permission_microphone_denied_warning">Microphone access is off, so you can\'t be heard on calls. Tap to fix.</string>
     <plurals name="mwi_messages_are_waiting">
         <item quantity="one">%s new voice message</item>
         <item quantity="other">%s new voice messages</item>

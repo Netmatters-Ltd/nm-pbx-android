@@ -27,9 +27,11 @@ import androidx.annotation.UiThread
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.navGraphViewModels
 import org.linphone.R
+import org.linphone.core.tools.Log
 import org.linphone.databinding.AssistantLandingFragmentBinding
 import org.linphone.ui.GenericFragment
 import org.linphone.ui.assistant.viewmodel.AccountLoginViewModel
+import org.linphone.ui.assistant.viewmodel.QrCodeViewModel
 
 @UiThread
 class LandingFragment : GenericFragment() {
@@ -40,6 +42,12 @@ class LandingFragment : GenericFragment() {
     private lateinit var binding: AssistantLandingFragmentBinding
 
     private val viewModel: AccountLoginViewModel by navGraphViewModels(
+        R.id.assistant_nav_graph
+    )
+
+    // Same nav-graph scope as QrCodeScannerFragment, so this is the same instance:
+    // the manually-typed URL feeds into the exact path used by a scanned QR code.
+    private val qrCodeViewModel: QrCodeViewModel by navGraphViewModels(
         R.id.assistant_nav_graph
     )
 
@@ -57,7 +65,9 @@ class LandingFragment : GenericFragment() {
 
         binding.lifecycleOwner = viewLifecycleOwner
         binding.viewModel = viewModel
+        binding.qrCodeViewModel = qrCodeViewModel
         observeToastEvents(viewModel)
+        observeToastEvents(qrCodeViewModel)
 
         binding.setBackClickListener {
             requireActivity().finish()
@@ -68,6 +78,17 @@ class LandingFragment : GenericFragment() {
                 val action =
                     LandingFragmentDirections.actionLandingFragmentToQrCodeScannerFragment()
                 findNavController().navigate(action)
+            }
+        }
+
+        qrCodeViewModel.remoteProvisioningSuccessfulEvent.observe(viewLifecycleOwner) {
+            it.consume { success ->
+                if (success) {
+                    Log.i("$TAG Remote provisioning applied successfully, leaving assistant")
+                    requireActivity().finish()
+                } else {
+                    Log.w("$TAG Remote provisioning applied but no account was configured, staying")
+                }
             }
         }
     }

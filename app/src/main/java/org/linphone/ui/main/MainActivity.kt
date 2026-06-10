@@ -226,6 +226,13 @@ class MainActivity : GenericActivity() {
             }
         }
 
+        viewModel.goToAndroidSettingsEvent.observe(this) {
+            it.consume {
+                Log.i("$TAG Going to Android app settings to manage a denied/disabled permission")
+                goToAndroidPermissionSettings()
+            }
+        }
+
         viewModel.showNewAccountToastEvent.observe(this) {
             it.consume {
                 val message = getString(R.string.new_account_configured_toast)

@@ -44,12 +44,20 @@ class QrCodeViewModel
 
     val onErrorEvent = MutableLiveData<Event<Boolean>>()
 
+    // Manually-typed provisioning URL (alternative to scanning a QR code)
+    val provisioningUrl = MutableLiveData<String>()
+
+    // True while the Core is being restarted to apply a manually-typed URL,
+    // used to disable the Apply button and avoid double submissions.
+    val applyInProgress = MutableLiveData<Boolean>()
+
     private val coreListener = object : CoreListenerStub() {
         @WorkerThread
         override fun onConfiguringStatus(core: Core, status: ConfiguringState, message: String?) {
             Log.i("$TAG Configuring state is [$status]")
             if (status == ConfiguringState.Failed) {
                 Log.e("$TAG Failure applying remote provisioning: $message")
+                applyInProgress.postValue(false)
                 showRedToast(R.string.remote_provisioning_config_failed_toast, R.drawable.warning_circle)
                 onErrorEvent.postValue(Event(true))
             }
@@ -75,36 +83,67 @@ class QrCodeViewModel
             Log.i("$TAG QR Code found: [$result]")
             if (result == null) {
                 showRedToast(R.string.assistant_qr_code_invalid_toast, R.drawable.warning_circle)
-            } else {
-                val url = LinphoneUtils.getRemoteProvisioningUrlFromUri(result)
-                if (url == null) {
-                    Log.e("$TAG The content of the QR Code [$result] doesn't seem to be a valid web URL")
-                    showRedToast(R.string.assistant_qr_code_invalid_toast, R.drawable.warning_circle)
-                    return
-                }
-
-                Log.i(
-                    "$TAG Setting QR code URL [$url], restarting the Core outside of iterate() loop to apply configuration changes"
-                )
-                core.nativePreviewWindowId = null
-                core.isVideoPreviewEnabled = false
-                core.isQrcodeVideoPreviewEnabled = false
-                core.provisioningUri = url
-
-                coreContext.postOnCoreThread { core ->
-                    Log.i("$TAG Stopping Core")
-                    core.stop()
-                    Log.i("$TAG Core has been stopped, restarting it")
-                    core.start()
-                    Log.i("$TAG Core has been restarted")
-                }
+                return
             }
+
+            val url = LinphoneUtils.getRemoteProvisioningUrlFromUri(result)
+            if (url == null) {
+                Log.e("$TAG The content of the QR Code [$result] doesn't seem to be a valid web URL")
+                showRedToast(R.string.assistant_qr_code_invalid_toast, R.drawable.warning_circle)
+                return
+            }
+
+            // Tear down the camera preview before restarting the Core
+            core.nativePreviewWindowId = null
+            core.isVideoPreviewEnabled = false
+            core.isQrcodeVideoPreviewEnabled = false
+
+            Log.i("$TAG Applying provisioning URL found in QR code")
+            applyProvisioningUrl(core, url)
         }
     }
 
     init {
         coreContext.postOnCoreThread { core ->
             core.addListener(coreListener)
+        }
+    }
+
+    @UiThread
+    fun applyRemoteProvisioningUrl() {
+        val rawUrl = provisioningUrl.value.orEmpty().trim()
+        if (rawUrl.isEmpty()) {
+            Log.w("$TAG No provisioning URL entered")
+            return
+        }
+
+        val url = LinphoneUtils.getRemoteProvisioningUrlFromUri(rawUrl)
+        if (url == null) {
+            Log.e("$TAG Entered provisioning URL [$rawUrl] doesn't seem to be a valid web URL")
+            showRedToast(R.string.assistant_qr_code_invalid_toast, R.drawable.warning_circle)
+            return
+        }
+
+        applyInProgress.value = true
+        Log.i("$TAG Applying manually entered provisioning URL")
+        coreContext.postOnCoreThread { core ->
+            applyProvisioningUrl(core, url)
+        }
+    }
+
+    @WorkerThread
+    private fun applyProvisioningUrl(core: Core, url: String) {
+        Log.i(
+            "$TAG Setting provisioning URL [$url], restarting the Core outside of iterate() loop to apply configuration changes"
+        )
+        core.provisioningUri = url
+
+        coreContext.postOnCoreThread { c ->
+            Log.i("$TAG Stopping Core")
+            c.stop()
+            Log.i("$TAG Core has been stopped, restarting it")
+            c.start()
+            Log.i("$TAG Core has been restarted")
         }
     }
 

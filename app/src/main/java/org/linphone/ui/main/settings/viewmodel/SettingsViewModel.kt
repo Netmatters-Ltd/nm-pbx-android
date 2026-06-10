@@ -266,7 +266,9 @@ class SettingsViewModel
             showAdvancedSettings.postValue(!corePreferences.hideAdvancedSettings)
             showDeveloperSettings.postValue(corePreferences.showDeveloperSettings)
         }
-        showContactsSettings.value = true
+        // iOS parity: Contacts (LDAP/CardDAV) settings are hidden to match the simplified
+        // iOS settings screen (visible set: Calls, Network, Advanced, About).
+        showContactsSettings.value = false
 
         expandSecurity.value = false
         expandCalls.value = false

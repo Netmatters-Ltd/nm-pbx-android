@@ -19,6 +19,8 @@
  */
 package org.linphone.ui.main.viewmodel
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.UiThread
@@ -60,6 +62,7 @@ class MainViewModel
         const val NON_DEFAULT_ACCOUNT_NOT_CONNECTED = 10
         const val FULL_SCREEN_INTENTS_PERMISSION_NOT_GRANTED = 14
         const val SEND_NOTIFICATIONS_PERMISSION_NOT_GRANTED = 15
+        const val RECORD_AUDIO_PERMISSION_NOT_GRANTED = 16
         const val DEFAULT_ACCOUNT_DISABLED = 18
         const val NETWORK_NOT_REACHABLE = 19
     }
@@ -95,6 +98,10 @@ class MainViewModel
     }
 
     val askFullScreenIntentPermissionEvent: MutableLiveData<Event<Boolean>> by lazy {
+        MutableLiveData<Event<Boolean>>()
+    }
+
+    val goToAndroidSettingsEvent: MutableLiveData<Event<Boolean>> by lazy {
         MutableLiveData<Event<Boolean>>()
     }
 
@@ -423,14 +430,13 @@ class MainViewModel
 
     @UiThread
     fun updateMissingPermissionAlert() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            coreContext.postOnCoreThread {
+        coreContext.postOnCoreThread {
+            // RECORD_AUDIO and notifications are checked on every API level; the
+            // full-screen-intent permission only exists on Android 14+.
+            checkRecordAudioPermission()
+            checkPostNotificationsPermission()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 checkFullScreenIntentNotificationPermission()
-                checkPostNotificationsPermission()
-            }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            coreContext.postOnCoreThread {
-                checkPostNotificationsPermission()
             }
         }
     }
@@ -462,10 +468,17 @@ class MainViewModel
     fun onTopBarClicked() {
         if (atLeastOneCall.value == true) {
             goBackToCallEvent.value = Event(true)
+        } else if (maxAlertLevel.value == RECORD_AUDIO_PERMISSION_NOT_GRANTED) {
+            // A permanently-denied/disabled permission can't be re-prompted, deep-link to settings
+            goToAndroidSettingsEvent.value = Event(true)
         } else if (!Compatibility.hasFullScreenIntentPermission(coreContext.context)) {
             askFullScreenIntentPermissionEvent.value = Event(true)
         } else if (!Compatibility.isPostNotificationsPermissionGranted(coreContext.context)) {
             askPostNotificationsPermissionEvent.value = Event(true)
+        } else if (!Compatibility.areNotificationsEnabled(coreContext.context)) {
+            // Runtime permission is granted (or not required) but notifications were
+            // turned off in the system settings, so we can't re-prompt: deep-link instead
+            goToAndroidSettingsEvent.value = Event(true)
         } else {
             openDrawerEvent.value = Event(true)
         }
@@ -636,6 +649,9 @@ class MainViewModel
                 SEND_NOTIFICATIONS_PERMISSION_NOT_GRANTED, FULL_SCREEN_INTENTS_PERMISSION_NOT_GRANTED -> {
                     R.drawable.bell_slash
                 }
+                RECORD_AUDIO_PERMISSION_NOT_GRANTED -> {
+                    R.drawable.microphone_slash
+                }
                 else -> {
                     R.drawable.bell
                 }
@@ -689,17 +705,34 @@ class MainViewModel
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @WorkerThread
     private fun checkPostNotificationsPermission() {
-        if (!Compatibility.isPostNotificationsPermissionGranted(coreContext.context)) {
-            Log.w("$TAG POST_NOTIFICATIONS seems to be not granted!")
+        // Drive the banner off areNotificationsEnabled rather than the runtime grant alone:
+        // it also catches the user turning notifications off in the system settings.
+        if (!Compatibility.areNotificationsEnabled(coreContext.context)) {
+            Log.w("$TAG Notifications seem to be disabled!")
             val label = AppUtils.getString(R.string.post_notifications_permission_not_granted)
             coreContext.postOnCoreThread {
                 addAlert(SEND_NOTIFICATIONS_PERMISSION_NOT_GRANTED, label)
             }
         } else {
             removeAlert(SEND_NOTIFICATIONS_PERMISSION_NOT_GRANTED)
+        }
+    }
+
+    @WorkerThread
+    private fun checkRecordAudioPermission() {
+        val granted = coreContext.context.checkSelfPermission(
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            Log.w("$TAG RECORD_AUDIO permission seems to be not granted!")
+            val label = AppUtils.getString(R.string.permission_microphone_denied_warning)
+            coreContext.postOnCoreThread {
+                addAlert(RECORD_AUDIO_PERMISSION_NOT_GRANTED, label)
+            }
+        } else {
+            removeAlert(RECORD_AUDIO_PERMISSION_NOT_GRANTED)
         }
     }
 }

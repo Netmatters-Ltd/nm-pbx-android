@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="backClickListener"
+            type="android.view.View.OnClickListener" />
+        <variable
+            name="sourceCodeClickListener"
+            type="android.view.View.OnClickListener" />
+        <variable
+            name="licenseContent"
+            type="String" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/color_background_contrast_in_dark_mode">
+
+        <ImageView
+            android:id="@+id/back"
+            android:onClick="@{backClickListener}"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:adjustViewBounds="true"
+            android:padding="15dp"
+            android:src="@drawable/caret_left"
+            android:contentDescription="@string/content_description_go_back_icon"
+            app:tint="?attr/color_main1_500"
+            app:layout_constraintBottom_toBottomOf="@id/title"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/title" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/main_page_title_style"
+            android:id="@+id/title"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/top_bar_height"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:text="@string/settings_about_title"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/back"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ScrollView
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:fillViewport="true"
+            android:background="?attr/color_grey_100"
+            app:layout_constraintTop_toBottomOf="@id/title"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="@dimen/screen_bottom_margin">
+
+                <!-- Copyright + source card -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/info_card"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="16dp"
+                    android:padding="20dp"
+                    android:background="@drawable/shape_squircle_white_background"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        style="@style/section_header_style"
+                        android:id="@+id/copyright_heading"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_copyright_heading"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        style="@style/settings_title_style"
+                        android:id="@+id/copyright_original_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/settings_about_copyright_original_title"
+                        app:layout_constraintTop_toBottomOf="@id/copyright_heading"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        style="@style/default_text_style"
+                        android:id="@+id/copyright_original_detail"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:textSize="14sp"
+                        android:textColor="@color/gray_main2_500"
+                        android:text="@string/settings_about_copyright_original_detail"
+                        app:layout_constraintTop_toBottomOf="@id/copyright_original_title"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        style="@style/settings_title_style"
+                        android:id="@+id/copyright_netmatters_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/settings_about_copyright_netmatters_title"
+                        app:layout_constraintTop_toBottomOf="@id/copyright_original_detail"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        style="@style/default_text_style"
+                        android:id="@+id/copyright_netmatters_detail"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:textSize="14sp"
+                        android:textColor="@color/gray_main2_500"
+                        android:text="@string/settings_about_copyright_netmatters_detail"
+                        app:layout_constraintTop_toBottomOf="@id/copyright_netmatters_title"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <!-- Source code row -->
+                    <ImageView
+                        android:id="@+id/source_icon"
+                        android:onClick="@{sourceCodeClickListener}"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_marginTop="24dp"
+                        android:src="@drawable/globe_hemisphere_west"
+                        android:contentDescription="@null"
+                        app:tint="?attr/color_main1_500"
+                        app:layout_constraintTop_toBottomOf="@id/copyright_netmatters_detail"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        style="@style/settings_title_style"
+                        android:id="@+id/source_title"
+                        android:onClick="@{sourceCodeClickListener}"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="@string/settings_about_source_title"
+                        app:layout_constraintTop_toTopOf="@id/source_icon"
+                        app:layout_constraintStart_toEndOf="@id/source_icon"
+                        app:layout_constraintEnd_toStartOf="@id/source_arrow" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        style="@style/default_text_style"
+                        android:id="@+id/source_subtitle"
+                        android:onClick="@{sourceCodeClickListener}"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:textSize="14sp"
+                        android:textColor="@color/gray_main2_500"
+                        android:text="@string/settings_about_source_subtitle"
+                        app:layout_constraintTop_toBottomOf="@id/source_title"
+                        app:layout_constraintBottom_toBottomOf="@id/source_icon"
+                        app:layout_constraintStart_toEndOf="@id/source_icon"
+                        app:layout_constraintEnd_toStartOf="@id/source_arrow" />
+
+                    <ImageView
+                        android:id="@+id/source_arrow"
+                        android:onClick="@{sourceCodeClickListener}"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
+                        android:src="@drawable/arrow_square_out"
+                        android:contentDescription="@null"
+                        app:tint="?attr/color_main2_600"
+                        app:layout_constraintTop_toTopOf="@id/source_icon"
+                        app:layout_constraintBottom_toBottomOf="@id/source_icon"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Licence heading -->
+                <androidx.appcompat.widget.AppCompatTextView
+                    style="@style/section_header_style"
+                    android:id="@+id/license_heading"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="26dp"
+                    android:layout_marginEnd="26dp"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_about_license_heading"
+                    app:layout_constraintTop_toBottomOf="@id/info_card"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <ScrollView
+                    android:id="@+id/license_scroll"
+                    android:layout_width="0dp"
+                    android:layout_height="340dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="10dp"
+                    android:padding="12dp"
+                    android:background="@drawable/shape_squircle_white_background"
+                    app:layout_constraintTop_toBottomOf="@id/license_heading"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/license_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:textSize="11sp"
+                        android:textColor="?attr/color_main2_600"
+                        android:text="@{licenseContent}" />
+
+                </ScrollView>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </ScrollView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

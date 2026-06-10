@@ -147,6 +147,13 @@ class SettingsFragment : GenericMainFragment() {
             }
         }
 
+        binding.setAboutSettingsClickListener {
+            if (findNavController().currentDestination?.id == R.id.settingsFragment) {
+                val action = SettingsFragmentDirections.actionSettingsFragmentToAboutFragment()
+                findNavController().navigate(action)
+            }
+        }
+
         viewModel.recreateActivityEvent.observe(viewLifecycleOwner) {
             it.consume {
                 Log.w("$TAG Recreate Activity")

@@ -145,6 +145,14 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settingsFragment_to_aboutFragment"
+            app:destination="@id/aboutFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <action
@@ -381,6 +389,12 @@
         android:name="org.linphone.ui.main.settings.fragment.SettingsAdvancedFragment"
         android:label="SettingsAdvancedFragment"
         tools:layout="@layout/settings_advanced_fragment"/>
+
+    <fragment
+        android:id="@+id/aboutFragment"
+        android:name="org.linphone.ui.main.settings.fragment.AboutFragment"
+        android:label="AboutFragment"
+        tools:layout="@layout/about_fragment"/>
 
     <fragment
         android:id="@+id/singleSignOnFragment"
