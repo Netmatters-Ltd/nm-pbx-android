@@ -44,6 +44,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.databinding.DataBindingUtil
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -152,6 +153,9 @@ class MainActivity : GenericActivity() {
         binding = DataBindingUtil.setContentView(this, R.layout.main_activity)
         binding.lifecycleOwner = this
         setUpToastsArea(binding.toastsArea)
+
+        // The side drawer is removed from the UI; lock it closed so it can't be swiped open
+        binding.drawerMenu.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
 
         // Will give the device's status bar background color
         ViewCompat.setOnApplyWindowInsetsListener(binding.notificationsArea) { v, windowInsets ->

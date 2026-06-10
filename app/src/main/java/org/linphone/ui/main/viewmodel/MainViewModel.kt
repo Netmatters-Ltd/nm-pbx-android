@@ -491,9 +491,9 @@ class MainViewModel
             // Runtime permission is granted (or not required) but notifications were
             // turned off in the system settings, so we can't re-prompt: deep-link instead
             goToAndroidSettingsEvent.value = Event(true)
-        } else {
-            openDrawerEvent.value = Event(true)
         }
+        // The side drawer has been removed, so there is nothing to do once the permission
+        // chain above has no actionable issue left. The banner tap simply does nothing.
     }
 
     @UiThread

@@ -95,6 +95,10 @@ open class AbstractMainViewModel
         MutableLiveData<Event<Boolean>>()
     }
 
+    val openSettingsEvent: MutableLiveData<Event<Boolean>> by lazy {
+        MutableLiveData<Event<Boolean>>()
+    }
+
     val navigateToHistoryEvent: MutableLiveData<Event<Boolean>> by lazy {
         MutableLiveData<Event<Boolean>>()
     }
@@ -264,6 +268,11 @@ open class AbstractMainViewModel
     @UiThread
     fun openDrawerMenu() {
         openDrawerMenuEvent.value = Event(true)
+    }
+
+    @UiThread
+    fun openSettings() {
+        openSettingsEvent.value = Event(true)
     }
 
     @UiThread

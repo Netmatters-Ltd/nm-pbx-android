@@ -936,6 +936,7 @@
     <string name="content_description_erase_last_input">Removes the last digit or character</string>
     <string name="content_description_merge_calls_into_conference">Merges calls into a conference</string>
     <string name="content_description_open_filter">Opens filter area</string>
+    <string name="content_description_open_settings">Opens settings</string>
     <string name="content_description_cancel_filter">Closes filter area</string>
     <string name="content_description_clear_filter">Clear current filter</string>
     <string name="content_description_create_group_conversation">Creates the group conversation</string>

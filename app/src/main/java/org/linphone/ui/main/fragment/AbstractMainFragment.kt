@@ -41,7 +41,6 @@ import org.linphone.R
 import org.linphone.core.tools.Log
 import org.linphone.databinding.BottomNavBarBinding
 import org.linphone.databinding.MainActivityTopBarBinding
-import org.linphone.ui.main.MainActivity
 import org.linphone.ui.main.chat.fragment.ConversationsListFragmentDirections
 import org.linphone.ui.main.contacts.fragment.ContactsListFragmentDirections
 import org.linphone.ui.main.history.fragment.HistoryListFragmentDirections
@@ -127,9 +126,12 @@ abstract class AbstractMainFragment : GenericMainFragment() {
 
         viewModel = abstractMainViewModel
 
-        viewModel.openDrawerMenuEvent.observe(viewLifecycleOwner) {
+        viewModel.openSettingsEvent.observe(viewLifecycleOwner) {
             it.consume {
-                (requireActivity() as MainActivity).toggleDrawerMenu()
+                val navController = findNavController()
+                if (navController.currentDestination?.id != R.id.settingsFragment) {
+                    navController.navigate(R.id.action_global_settingsFragment)
+                }
             }
         }
 
