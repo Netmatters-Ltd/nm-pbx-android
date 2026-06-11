@@ -270,7 +270,8 @@ class AccountModel
         val name = LinphoneUtils.getDisplayName(account.params.identityAddress)
         displayName.postValue(name)
 
-        initials.postValue(AppUtils.getInitials(name))
+        val extension = account.params.identityAddress?.username.orEmpty()
+        initials.postValue(extension.ifEmpty { AppUtils.getInitials(name) })
 
         val pictureUri = account.params.pictureUri.orEmpty()
         if (pictureUri != picturePath.value.orEmpty()) {
