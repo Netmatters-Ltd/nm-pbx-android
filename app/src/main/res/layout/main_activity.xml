@@ -10,89 +10,70 @@
             type="org.linphone.ui.main.viewmodel.MainViewModel" />
     </data>
 
-    <androidx.drawerlayout.widget.DrawerLayout
-        android:id="@+id/drawer_menu"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
         tools:context=".ui.main.MainActivity">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
+            android:id="@+id/notifications_area"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@{viewModel.showAlert ? (viewModel.maxAlertLevel >= 10 ? @drawable/color_danger_500 : @drawable/color_main_activity_top_bar) : (viewModel.pendingFilesOrTextSharing ? @drawable/color_main_activity_top_bar : (viewModel.atLeastOneCall ? @drawable/color_success_500 : @drawable/color_main1_700_dark)), default=@drawable/color_main1_700_dark}"
+            app:layout_constraintTop_toTopOf="parent">
 
-            <LinearLayout
-                android:id="@+id/notifications_area"
+            <include
+                android:id="@+id/alerts_top_bar"
+                layout="@layout/main_activity_alert_top_bar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@{viewModel.showAlert ? (viewModel.maxAlertLevel >= 10 ? @drawable/color_danger_500 : @drawable/color_main_activity_top_bar) : (viewModel.pendingFilesOrTextSharing ? @drawable/color_main_activity_top_bar : (viewModel.atLeastOneCall ? @drawable/color_success_500 : @drawable/color_main1_700_dark)), default=@drawable/color_main1_700_dark}"
-                app:layout_constraintTop_toTopOf="parent">
+                android:visibility="@{viewModel.showAlert ? View.VISIBLE : View.GONE, default=gone}"
+                app:viewModel="@{viewModel}"/>
 
-                <include
-                    android:id="@+id/alerts_top_bar"
-                    layout="@layout/main_activity_alert_top_bar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="@{viewModel.showAlert ? View.VISIBLE : View.GONE, default=gone}"
-                    app:viewModel="@{viewModel}"/>
-
-                <include
-                    android:id="@+id/file_sharing_top_bar"
-                    layout="@layout/main_activity_pending_sharing_top_bar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="@{viewModel.pendingFilesOrTextSharing ? View.VISIBLE : View.GONE, default=gone}"
-                    app:viewModel="@{viewModel}"/>
-
-                <include
-                    android:id="@+id/in_call_top_bar"
-                    layout="@layout/main_activity_in_call_top_bar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="@{viewModel.atLeastOneCall ? View.VISIBLE : View.GONE, default=gone}"
-                    app:viewModel="@{viewModel}"/>
-
-            </LinearLayout>
-
-            <androidx.fragment.app.FragmentContainerView
-                android:id="@+id/main_nav_container"
-                android:name="androidx.navigation.fragment.NavHostFragment"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                app:defaultNavHost="true"
-                app:navGraph="@navigation/main_nav_graph"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/notifications_area"
-                app:layout_constraintBottom_toBottomOf="parent"/>
-
-            <LinearLayout
-                android:id="@+id/toasts_area"
-                android:layout_width="0dp"
+            <include
+                android:id="@+id/file_sharing_top_bar"
+                layout="@layout/main_activity_pending_sharing_top_bar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginTop="@dimen/toast_top_margin"
-                android:layout_marginStart="15dp"
-                android:layout_marginEnd="15dp"
-                app:layout_constraintWidth_max="@dimen/toast_max_width"
-                app:layout_constraintTop_toTopOf="@id/main_nav_container"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                android:visibility="@{viewModel.pendingFilesOrTextSharing ? View.VISIBLE : View.GONE, default=gone}"
+                app:viewModel="@{viewModel}"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            <include
+                android:id="@+id/in_call_top_bar"
+                layout="@layout/main_activity_in_call_top_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="@{viewModel.atLeastOneCall ? View.VISIBLE : View.GONE, default=gone}"
+                app:viewModel="@{viewModel}"/>
 
-        <!-- Side Menu -->
+        </LinearLayout>
+
         <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/drawer_menu_content"
-            android:name="org.linphone.ui.main.fragment.DrawerMenuFragment"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="?attr/color_main2_000"
-            android:layout_gravity="start"
-            app:layout="@layout/drawer_menu" />
+            android:id="@+id/main_nav_container"
+            android:name="androidx.navigation.fragment.NavHostFragment"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:defaultNavHost="true"
+            app:navGraph="@navigation/main_nav_graph"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/notifications_area"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
-    </androidx.drawerlayout.widget.DrawerLayout>
+        <LinearLayout
+            android:id="@+id/toasts_area"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="@dimen/toast_top_margin"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
+            app:layout_constraintWidth_max="@dimen/toast_max_width"
+            app:layout_constraintTop_toTopOf="@id/main_nav_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </layout>

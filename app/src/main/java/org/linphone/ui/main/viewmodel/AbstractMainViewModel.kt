@@ -91,10 +91,6 @@ open class AbstractMainViewModel
         MutableLiveData<Event<Boolean>>()
     }
 
-    val openDrawerMenuEvent: MutableLiveData<Event<Boolean>> by lazy {
-        MutableLiveData<Event<Boolean>>()
-    }
-
     val openSettingsEvent: MutableLiveData<Event<Boolean>> by lazy {
         MutableLiveData<Event<Boolean>>()
     }
@@ -263,11 +259,6 @@ open class AbstractMainViewModel
     @UiThread
     fun openPresencePicker() {
         openPresencePickerEvent.value = Event(true)
-    }
-
-    @UiThread
-    fun openDrawerMenu() {
-        openDrawerMenuEvent.value = Event(true)
     }
 
     @UiThread

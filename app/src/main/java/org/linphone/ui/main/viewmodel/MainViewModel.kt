@@ -89,10 +89,6 @@ class MainViewModel
         MutableLiveData<Event<Boolean>>()
     }
 
-    val openDrawerEvent: MutableLiveData<Event<Boolean>> by lazy {
-        MutableLiveData<Event<Boolean>>()
-    }
-
     val askPostNotificationsPermissionEvent: MutableLiveData<Event<Boolean>> by lazy {
         MutableLiveData<Event<Boolean>>()
     }

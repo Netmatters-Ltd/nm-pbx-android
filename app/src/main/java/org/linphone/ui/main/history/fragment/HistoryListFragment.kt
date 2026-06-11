@@ -274,7 +274,6 @@ class HistoryListFragment : AbstractMainFragment() {
 
         Log.i("$TAG Fragment is resumed, resetting missed calls count")
         sharedViewModel.resetMissedCallsCountEvent.value = Event(true)
-        sharedViewModel.refreshDrawerMenuAccountsListEvent.value = Event(false)
 
         if (shouldRefreshDataInOnResume()) {
             Log.i("$TAG Keep app alive setting is enabled, refreshing view just in case")

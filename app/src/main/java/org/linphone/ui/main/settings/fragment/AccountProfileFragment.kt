@@ -44,7 +44,6 @@ import org.linphone.ui.main.fragment.GenericMainFragment
 import org.linphone.utils.ConfirmationDialogModel
 import org.linphone.ui.main.settings.viewmodel.AccountProfileViewModel
 import org.linphone.utils.DialogUtils
-import org.linphone.utils.Event
 import org.linphone.utils.FileUtils
 
 @UiThread
@@ -213,7 +212,6 @@ class AccountProfileFragment : GenericMainFragment() {
 
         Log.i("$TAG Leaving account profile, saving changes")
         viewModel.saveChangesWhenLeaving()
-        sharedViewModel.refreshDrawerMenuAccountsListEvent.value = Event(true)
     }
 
     private fun goToAccountProfileModeFragment() {

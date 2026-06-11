@@ -28,8 +28,6 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
-import android.view.Gravity
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.activity.SystemBarStyle
@@ -44,7 +42,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.databinding.DataBindingUtil
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -154,9 +151,6 @@ class MainActivity : GenericActivity() {
         binding.lifecycleOwner = this
         setUpToastsArea(binding.toastsArea)
 
-        // The side drawer is removed from the UI; lock it closed so it can't be swiped open
-        binding.drawerMenu.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-
         // Will give the device's status bar background color
         ViewCompat.setOnApplyWindowInsetsListener(binding.notificationsArea) { v, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -168,17 +162,6 @@ class MainActivity : GenericActivity() {
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             val keyboard = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
             v.updatePadding(insets.left, 0, insets.right, max(insets.bottom, keyboard.bottom))
-            WindowInsetsCompat.CONSUMED
-        }
-
-        ViewCompat.setOnApplyWindowInsetsListener(binding.drawerMenuContent) { v, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val mlp = v.layoutParams as ViewGroup.MarginLayoutParams
-            mlp.leftMargin = insets.left
-            mlp.topMargin = insets.top
-            mlp.rightMargin = insets.right
-            mlp.bottomMargin = insets.bottom
-            v.layoutParams = mlp
             WindowInsetsCompat.CONSUMED
         }
 
@@ -198,12 +181,6 @@ class MainActivity : GenericActivity() {
         viewModel.goBackToCallEvent.observe(this) {
             it.consume {
                 coreContext.showCallActivity()
-            }
-        }
-
-        viewModel.openDrawerEvent.observe(this) {
-            it.consume {
-                openDrawerMenu()
             }
         }
 
@@ -453,23 +430,6 @@ class MainActivity : GenericActivity() {
         handleIntent(intent)
     }
 
-    @SuppressLint("RtlHardcoded")
-    fun toggleDrawerMenu() {
-        if (binding.drawerMenu.isDrawerOpen(Gravity.LEFT)) {
-            closeDrawerMenu()
-        } else {
-            openDrawerMenu()
-        }
-    }
-
-    fun closeDrawerMenu() {
-        binding.drawerMenu.closeDrawer(binding.drawerMenuContent, true)
-    }
-
-    private fun openDrawerMenu() {
-        binding.drawerMenu.openDrawer(binding.drawerMenuContent, true)
-    }
-
     fun findNavController(): NavController {
         return findNavController(R.id.main_nav_container)
     }
@@ -702,10 +662,6 @@ class MainActivity : GenericActivity() {
                 deferred.add(async { FileUtils.getFilePath(this@MainActivity, uri, false) })
             }
 
-            if (binding.drawerMenu.isOpen) {
-                Log.i("$TAG Drawer menu is opened, closing it")
-                closeDrawerMenu()
-            }
             if (findNavController().currentDestination?.id == R.id.conversationsListFragment) {
                 if (sharedViewModel.displayedChatRoom != null) {
                     Log.w(

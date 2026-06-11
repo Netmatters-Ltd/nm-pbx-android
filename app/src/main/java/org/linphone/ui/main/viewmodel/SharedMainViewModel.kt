@@ -70,14 +70,6 @@ class SharedMainViewModel
         MutableLiveData<Event<String>>()
     }
 
-    val refreshDrawerMenuAccountsListEvent: MutableLiveData<Event<Boolean>> by lazy {
-        MutableLiveData<Event<Boolean>>()
-    }
-
-    val refreshDrawerMenuQuitButtonEvent: MutableLiveData<Event<Boolean>> by lazy {
-        MutableLiveData<Event<Boolean>>()
-    }
-
     val forceUpdateAvailableNavigationItems: MutableLiveData<Event<Boolean>> by lazy {
         MutableLiveData<Event<Boolean>>()
     }

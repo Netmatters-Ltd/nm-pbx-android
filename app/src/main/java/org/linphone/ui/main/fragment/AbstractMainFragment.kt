@@ -145,10 +145,6 @@ abstract class AbstractMainFragment : GenericMainFragment() {
             viewModel.applyFilter(filter.trim())
         }
 
-        viewModel.missedCallsCount.observe(viewLifecycleOwner) {
-            sharedViewModel.refreshDrawerMenuAccountsListEvent.value = Event(false)
-        }
-
         viewModel.navigateToExtensionsEvent.observe(viewLifecycleOwner) {
             it.consume {
                 if (currentFragmentId != R.id.extensionsListFragment) {
