@@ -23,11 +23,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import androidx.annotation.UiThread
 import androidx.lifecycle.ViewModelProvider
-import org.linphone.R
 import org.linphone.databinding.SettingsAdvancedFragmentBinding
 import org.linphone.ui.GenericActivity
 import org.linphone.ui.main.fragment.GenericMainFragment
@@ -38,33 +35,6 @@ class SettingsAdvancedFragment : GenericMainFragment() {
     private lateinit var binding: SettingsAdvancedFragmentBinding
 
     private lateinit var viewModel: SettingsViewModel
-
-    private val mediaEncryptionDropdownListener = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            viewModel.setMediaEncryption(position)
-        }
-
-        override fun onNothingSelected(parent: AdapterView<*>?) {
-        }
-    }
-
-    private val inputAudioDeviceDropdownListener = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            viewModel.setInputAudioDevice(position)
-        }
-
-        override fun onNothingSelected(parent: AdapterView<*>?) {
-        }
-    }
-
-    private val outputAudioDeviceDropdownListener = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            viewModel.setOutputAudioDevice(position)
-        }
-
-        override fun onNothingSelected(parent: AdapterView<*>?) {
-        }
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -93,64 +63,6 @@ class SettingsAdvancedFragment : GenericMainFragment() {
             (requireActivity() as GenericActivity).goToAndroidPermissionSettings()
         }
 
-        viewModel.mediaEncryptionIndex.observe(viewLifecycleOwner) {
-            setupMediaEncryptionPicker()
-        }
-
-        viewModel.inputAudioDeviceIndex.observe(viewLifecycleOwner) {
-            setupInputAudioDevicePicker()
-        }
-
-        viewModel.outputAudioDeviceIndex.observe(viewLifecycleOwner) {
-            setupOutputAudioDevicePicker()
-        }
-
         startPostponedEnterTransition()
-    }
-
-    override fun onPause() {
-        viewModel.updateDeviceName()
-        viewModel.updateRemoteProvisioningUrl()
-
-        super.onPause()
-    }
-
-    private fun setupMediaEncryptionPicker() {
-        val index = viewModel.mediaEncryptionIndex.value ?: 0
-        val adapter = ArrayAdapter(
-            requireContext(),
-            R.layout.drop_down_item,
-            viewModel.mediaEncryptionLabels
-        )
-        adapter.setDropDownViewResource(R.layout.generic_dropdown_cell)
-        binding.advancedCallsSettings.mediaEncryption.adapter = adapter
-        binding.advancedCallsSettings.mediaEncryption.onItemSelectedListener = mediaEncryptionDropdownListener
-        binding.advancedCallsSettings.mediaEncryption.setSelection(index)
-    }
-
-    private fun setupInputAudioDevicePicker() {
-        val index = viewModel.inputAudioDeviceIndex.value ?: 0
-        val adapter = ArrayAdapter(
-            requireContext(),
-            R.layout.drop_down_item,
-            viewModel.inputAudioDeviceLabels
-        )
-        adapter.setDropDownViewResource(R.layout.generic_dropdown_cell)
-        binding.inputAudioDevice.adapter = adapter
-        binding.inputAudioDevice.onItemSelectedListener = inputAudioDeviceDropdownListener
-        binding.inputAudioDevice.setSelection(index)
-    }
-
-    private fun setupOutputAudioDevicePicker() {
-        val index = viewModel.outputAudioDeviceIndex.value ?: 0
-        val adapter = ArrayAdapter(
-            requireContext(),
-            R.layout.drop_down_item,
-            viewModel.outputAudioDeviceLabels
-        )
-        adapter.setDropDownViewResource(R.layout.generic_dropdown_cell)
-        binding.outputAudioDevice.adapter = adapter
-        binding.outputAudioDevice.onItemSelectedListener = outputAudioDeviceDropdownListener
-        binding.outputAudioDevice.setSelection(index)
     }
 }
