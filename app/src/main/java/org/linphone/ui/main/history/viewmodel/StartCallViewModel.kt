@@ -130,7 +130,7 @@ class StartCallViewModel
                     Log.i("$TAG Using numpad dial button to call [$suggestion]")
                     coreContext.postOnCoreThread { core ->
                         val address = core.interpretUrl(
-                            suggestion,
+                            LinphoneUtils.normalizePhoneNumber(suggestion),
                             LinphoneUtils.applyInternationalPrefix()
                         )
                         if (address != null) {
@@ -149,7 +149,7 @@ class StartCallViewModel
                     Log.i("$TAG Using numpad transfer button to blind forward call to [$suggestion]")
                     coreContext.postOnCoreThread { core ->
                         val address = core.interpretUrl(
-                            suggestion,
+                            LinphoneUtils.normalizePhoneNumber(suggestion),
                             LinphoneUtils.applyInternationalPrefix()
                         )
                         if (address != null) {

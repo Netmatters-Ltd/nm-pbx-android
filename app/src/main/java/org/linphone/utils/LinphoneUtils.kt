@@ -19,7 +19,9 @@
  */
 package org.linphone.utils
 
+import android.content.Context
 import android.graphics.Typeface
+import android.telephony.TelephonyManager
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.StyleSpan
@@ -102,6 +104,29 @@ class LinphoneUtils {
         fun applyInternationalPrefix(account: Account? = null): Boolean {
             return account?.params?.useInternationalPrefixForCallsAndChats
                 ?: (getDefaultAccount()?.params?.useInternationalPrefixForCallsAndChats == true)
+        }
+
+        // Converts an E.164 or double-zero international number to local format
+        // (e.g. "+447421509555" -> "07421509555"). Uses the account's configured international
+        // prefix if set, otherwise falls back to the device's SIM/network country. Returns the
+        // number unchanged if no country can be determined or the prefix doesn't match.
+        @WorkerThread
+        fun normalizePhoneNumber(phoneNumber: String, account: Account? = null): String {
+            val acc = account ?: getDefaultAccount()
+            val prefix = acc?.params?.internationalPrefix?.takeIf { it.isNotEmpty() }
+                ?: run {
+                    val telephonyManager = coreContext.context
+                        .getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+                    val countryIso = telephonyManager?.networkCountryIso?.takeIf { it.isNotEmpty() }
+                        ?: "gb"
+                    PhoneNumberUtils.getDeviceDialPlan(countryIso)?.countryCallingCode
+                }
+                ?: return phoneNumber
+            return when {
+                phoneNumber.startsWith("+$prefix") -> "0" + phoneNumber.removePrefix("+$prefix")
+                phoneNumber.startsWith("00$prefix") -> "0" + phoneNumber.removePrefix("00$prefix")
+                else -> phoneNumber
+            }
         }
 
         @WorkerThread

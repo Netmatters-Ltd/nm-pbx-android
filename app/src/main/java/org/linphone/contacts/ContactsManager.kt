@@ -902,8 +902,9 @@ fun Friend.getListOfSipAddressesAndPhoneNumbers(listener: ContactNumberOrAddress
         // phone numbers are disabled is secure mode unless linked to a SIP address
         val defaultAccount = LinphoneUtils.getDefaultAccount()
         val enablePhoneNumbers = hasPresenceInfo || !isEndToEndEncryptionMandatory()
+        val normalizedNumber = LinphoneUtils.normalizePhoneNumber(number.phoneNumber, defaultAccount)
         val address = presenceAddress ?: core.interpretUrl(
-            number.phoneNumber,
+            normalizedNumber,
             LinphoneUtils.applyInternationalPrefix(defaultAccount)
         )
         val label = PhoneNumberUtils.vcardParamStringToAddressBookLabel(
