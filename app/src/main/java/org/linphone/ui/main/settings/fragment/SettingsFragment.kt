@@ -36,6 +36,7 @@ import org.linphone.R
 import org.linphone.compatibility.Compatibility
 import org.linphone.core.tools.Log
 import org.linphone.databinding.SettingsFragmentBinding
+import org.linphone.ui.GenericActivity
 import org.linphone.ui.main.fragment.GenericMainFragment
 import org.linphone.utils.ConfirmationDialogModel
 import org.linphone.ui.main.settings.viewmodel.SettingsViewModel
@@ -133,11 +134,8 @@ class SettingsFragment : GenericMainFragment() {
             goBack()
         }
 
-        binding.setAdvancedSettingsClickListener {
-            if (findNavController().currentDestination?.id == R.id.settingsFragment) {
-                val action = SettingsFragmentDirections.actionSettingsFragmentToSettingsAdvancedFragment()
-                findNavController().navigate(action)
-            }
+        binding.setAndroidSettingsClickListener {
+            (requireActivity() as GenericActivity).goToAndroidPermissionSettings()
         }
 
         binding.setDeveloperSettingsClickListener {

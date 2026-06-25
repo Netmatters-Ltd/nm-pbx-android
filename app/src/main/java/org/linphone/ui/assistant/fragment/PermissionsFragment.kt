@@ -98,11 +98,6 @@ class PermissionsFragment : GenericFragment() {
             findNavController().popBackStack()
         }
 
-        binding.setSkipClickListener {
-            Log.i("$TAG User clicked skip...")
-            leave()
-        }
-
         binding.setGrantAllClickListener {
             Log.i("$TAG Requesting all permissions")
             requestPermissionLauncher.launch(

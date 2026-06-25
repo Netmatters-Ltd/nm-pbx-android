@@ -42,7 +42,6 @@ import org.linphone.core.VFS
 import org.linphone.core.tools.Log
 import org.linphone.ui.GenericViewModel
 import org.linphone.ui.main.settings.model.CardDavLdapModel
-import org.linphone.ui.main.settings.model.CodecModel
 import org.linphone.utils.AppUtils
 import org.linphone.utils.Event
 
@@ -60,6 +59,7 @@ class SettingsViewModel
     val expandMeetings = MutableLiveData<Boolean>()
     val expandNetwork = MutableLiveData<Boolean>()
     val expandUserInterface = MutableLiveData<Boolean>()
+    val expandStartup = MutableLiveData<Boolean>()
     val expandTunnel = MutableLiveData<Boolean>()
     val isTunnelAvailable = MutableLiveData<Boolean>()
 
@@ -190,8 +190,6 @@ class SettingsViewModel
     )
 
     // Advanced settings
-    val showAdvancedSettings = MutableLiveData<Boolean>()
-
     val sendLogsToCrashlytics = MutableLiveData<Boolean>()
     val isCrashlyticsAvailable = MutableLiveData<Boolean>()
     val startAtBoot = MutableLiveData<Boolean>()
@@ -220,12 +218,6 @@ class SettingsViewModel
     val outputAudioDeviceIndex = MutableLiveData<Int>()
     val outputAudioDeviceLabels = arrayListOf<String>()
     private val outputAudioDeviceValues = arrayListOf<AudioDevice>()
-
-    val expandAudioCodecs = MutableLiveData<Boolean>()
-    val audioCodecs = MutableLiveData<List<CodecModel>>()
-
-    val expandVideoCodecs = MutableLiveData<Boolean>()
-    val videoCodecs = MutableLiveData<List<CodecModel>>()
 
     // Developer settings
     val showDeveloperSettings = MutableLiveData<Boolean>()
@@ -263,7 +255,6 @@ class SettingsViewModel
             ldapAvailable.postValue(core.ldapAvailable())
             showThemeSelector.postValue(corePreferences.darkModeAllowed)
             showColorSelector.postValue(corePreferences.changeMainColorAllowed)
-            showAdvancedSettings.postValue(!corePreferences.hideAdvancedSettings)
             showDeveloperSettings.postValue(corePreferences.showDeveloperSettings)
         }
         // iOS parity: Contacts (LDAP/CardDAV) settings are hidden to match the simplified
@@ -277,11 +268,10 @@ class SettingsViewModel
         expandMeetings.value = false
         expandNetwork.value = false
         expandUserInterface.value = false
+        expandStartup.value = false
         expandTunnel.value = false
         expandAdvancedCalls.value = false
         expandAudioDevices.value = false
-        expandAudioCodecs.value = false
-        expandVideoCodecs.value = false
 
         val vfsEnabled = VFS.isEnabled(coreContext.context)
         isVfsEnabled.value = vfsEnabled
@@ -356,7 +346,6 @@ class SettingsViewModel
 
             setupMediaEncryption()
             setupAudioDevices()
-            setupCodecs()
 
             logcat.postValue(corePreferences.printLogsInLogcat)
             fileSharingServerUrl.postValue(core.fileTransferServer)
@@ -677,6 +666,11 @@ class SettingsViewModel
             Log.i("$TAG Color [$colorName] saved")
         }
         color.value = colorName
+    }
+
+    @UiThread
+    fun toggleStartupExpand() {
+        expandStartup.value = expandStartup.value == false
     }
 
     @UiThread
@@ -1011,46 +1005,6 @@ class SettingsViewModel
                 outputIndex += 1
             }
         }
-    }
-
-    @UiThread
-    fun toggleAudioCodecsExpand() {
-        expandAudioCodecs.value = expandAudioCodecs.value == false
-    }
-
-    @UiThread
-    fun toggleVideoCodecsExpand() {
-        expandVideoCodecs.value = expandVideoCodecs.value == false
-    }
-
-    @WorkerThread
-    private fun setupCodecs() {
-        val core = coreContext.core
-
-        val audioCodecsList = arrayListOf<CodecModel>()
-        for (payload in core.audioPayloadTypes) {
-            val model = CodecModel(
-                payload.mimeType,
-                payload.clockRate,
-                payload.channels,
-                null,
-                true,
-                payload.enabled()
-            ) { enabled ->
-                payload.enable(enabled)
-            }
-            audioCodecsList.add(model)
-        }
-        audioCodecs.postValue(audioCodecsList)
-
-        val videoCodecsList = arrayListOf<CodecModel>()
-        for (payload in core.videoPayloadTypes) {
-            val model = CodecModel(payload.mimeType, -1, 0, payload.recvFmtp, false, payload.enabled()) { enabled ->
-                payload.enable(enabled)
-            }
-            videoCodecsList.add(model)
-        }
-        videoCodecs.postValue(videoCodecsList)
     }
 
     @WorkerThread

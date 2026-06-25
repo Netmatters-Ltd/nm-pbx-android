@@ -173,11 +173,11 @@
     <string name="assistant_permissions_grant_all_of_them">OK</string>
     <string name="assistant_permissions_skip_permissions">Do it later</string>
 
-    <string name="assistant_permissions_subtitle">To fully benefit from &appName; please accept the following permissions:</string>
-    <string name="assistant_permissions_read_contacts_title"><b>Read contacts:</b> To call people already in your phone\'s contacts list.</string>
-    <string name="assistant_permissions_post_notifications_title"><b>Notifications:</b> To be informed when you receive a call.</string>
-    <string name="assistant_permissions_record_audio_title"><b>Microphone:</b> Used for making calls.</string>
-    <string name="assistant_permissions_access_camera_title"><b>Access camera:</b> To scan a QR code when first setting up the app.</string>
+    <string name="assistant_permissions_subtitle">&appName; requests the following permissions:</string>
+    <string name="assistant_permissions_post_notifications_title"><b>Notifications:</b> Required to inform you of incoming &appName; calls when the &appName; app isn\'t active.</string>
+    <string name="assistant_permissions_record_audio_title"><b>Microphone:</b> Used when making calls through &appName;.</string>
+    <string name="assistant_permissions_read_contacts_title"><b>Read contacts:</b> Optional. To show contacts already on this device within &appName;. Your contacts are not sent to &appName;, but phone numbers you call are communicated to the server as part of the call.</string>
+    <string name="assistant_permissions_access_camera_title"><b>Camera:</b> Optional. Used during initial setup to scan a QR code instead of entering a URL.</string>
 
     <string name="assistant_forgotten_password_title">Password forgotten</string>
     <string name="assistant_forgotten_password_subtitle">Choose how to recover your account.</string>
@@ -255,7 +255,7 @@
     <string name="settings_calls_calibrate_echo_canceller_done_no_echo">no echo</string>
     <string name="settings_calls_calibrate_echo_canceller_done">%s ms</string>
     <string name="settings_calls_calibrate_echo_canceller_failed">failed</string>
-    <string name="settings_calls_adaptive_rate_control_title">Adaptive rate control</string>
+    <string name="settings_calls_adaptive_rate_control_title">Adaptive bitrate</string>
     <string name="settings_calls_enable_video_title">Enable video</string>
     <string name="settings_calls_enable_fec_title">Enable video FEC</string>
     <string name="settings_calls_vibrate_while_ringing_title">Vibrate while incoming call is ringing</string>
@@ -335,6 +335,7 @@
     <string name="settings_about_license_heading">Licence</string>
     <string name="about_license_unavailable">Licence text unavailable.</string>
 
+    <string name="settings_startup_title">Startup</string>
     <string name="settings_advanced_title">Advanced settings</string>
     <string name="settings_advanced_print_logs_crashlytics_title">Help developers troubleshoot issues by sending logs to Crashlytics after a crash</string>
     <string name="settings_advanced_start_at_boot_title">Start when device boots</string>

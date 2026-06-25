@@ -270,6 +270,20 @@ class ContactsManager
                 FriendList.SyncStatus.Successful -> {
                     notifyContactsListChanged()
                     cardDavSyncResultEvent.postValue(Event(true))
+
+                    // The list was empty when subscriptions were first enabled at startup, so the
+                    // SDK's aggregated RLS SUBSCRIBE went out with no resources. Now that the
+                    // CardDAV sync has populated it, force a fresh SUBSCRIBE so presence NOTIFYs
+                    // start arriving without needing a background/foreground round-trip. Toggle
+                    // rather than updateSubscriptions() (see AccountModel.setAsDefault):
+                    // updateSubscriptions() is a no-op unless a friend object changed.
+                    if (friendList.isSubscriptionsEnabled) {
+                        Log.i(
+                            "$TAG CardDAV list [${friendList.displayName}] synced, refreshing presence subscriptions"
+                        )
+                        friendList.isSubscriptionsEnabled = false
+                        friendList.isSubscriptionsEnabled = true
+                    }
                 }
                 FriendList.SyncStatus.Failure -> {
                     Log.e("$TAG Friend list [${friendList.displayName}] sync failed: $message")

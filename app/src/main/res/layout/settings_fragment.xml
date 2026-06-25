@@ -12,13 +12,13 @@
             name="turnOnVfsClickListener"
             type="View.OnClickListener" />
         <variable
-            name="advancedSettingsClickListener"
-            type="View.OnClickListener" />
-        <variable
             name="developerSettingsClickListener"
             type="View.OnClickListener" />
         <variable
             name="aboutSettingsClickListener"
+            type="View.OnClickListener" />
+        <variable
+            name="androidSettingsClickListener"
             type="View.OnClickListener" />
         <variable
             name="viewModel"
@@ -281,6 +281,35 @@
 
                 <androidx.appcompat.widget.AppCompatTextView
                     style="@style/section_header_style"
+                    android:id="@+id/startup"
+                    android:onClick="@{() -> viewModel.toggleStartupExpand()}"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:padding="5dp"
+                    android:layout_marginStart="26dp"
+                    android:layout_marginEnd="26dp"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_startup_title"
+                    android:drawableEnd="@{viewModel.expandStartup ? @drawable/caret_up : @drawable/caret_down, default=@drawable/caret_up}"
+                    android:drawableTint="?attr/color_main2_600"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/network_settings"/>
+
+                <include
+                    android:id="@+id/startup_settings"
+                    layout="@layout/settings_startup"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:visibility="@{viewModel.expandStartup ? View.VISIBLE : View.GONE, default=gone}"
+                    app:layout_constraintTop_toBottomOf="@id/startup"
+                    bind:viewModel="@{viewModel}"/>
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    style="@style/section_header_style"
                     android:id="@+id/tunnel"
                     android:onClick="@{() -> viewModel.toggleTunnelExpand()}"
                     android:layout_width="0dp"
@@ -295,7 +324,7 @@
                     android:drawableTint="?attr/color_main2_600"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/user_interface_settings"/>
+                    app:layout_constraintTop_toBottomOf="@id/startup_settings"/>
 
                 <include
                     android:id="@+id/tunnel_settings"
@@ -308,25 +337,6 @@
                     android:visibility="@{viewModel.isTunnelAvailable &amp;&amp; viewModel.expandTunnel ? View.VISIBLE : View.GONE, default=gone}"
                     app:layout_constraintTop_toBottomOf="@id/tunnel"
                     bind:viewModel="@{viewModel}"/>
-
-                <androidx.appcompat.widget.AppCompatTextView
-                    style="@style/section_header_style"
-                    android:id="@+id/advanced_settings"
-                    android:onClick="@{advancedSettingsClickListener}"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:padding="5dp"
-                    android:layout_marginStart="26dp"
-                    android:layout_marginEnd="26dp"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="@dimen/screen_bottom_margin"
-                    android:text="@string/settings_advanced_title"
-                    android:drawableEnd="@drawable/caret_right"
-                    android:drawableTint="?attr/color_main2_600"
-                    android:visibility="@{viewModel.showAdvancedSettings ? View.VISIBLE : View.GONE}"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/tunnel_settings"/>
 
                 <androidx.appcompat.widget.AppCompatTextView
                     style="@style/section_header_style"
@@ -344,7 +354,7 @@
                     android:visibility="@{viewModel.showDeveloperSettings ? View.VISIBLE : View.GONE, default=gone}"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/advanced_settings"/>
+                    app:layout_constraintTop_toBottomOf="@id/tunnel_settings"/>
 
                 <androidx.appcompat.widget.AppCompatTextView
                     style="@style/section_header_style"
@@ -356,14 +366,31 @@
                     android:layout_marginStart="26dp"
                     android:layout_marginEnd="26dp"
                     android:layout_marginTop="16dp"
-                    android:layout_marginBottom="@dimen/screen_bottom_margin"
                     android:text="@string/settings_about_title"
                     android:drawableEnd="@drawable/caret_right"
+                    android:drawableTint="?attr/color_main2_600"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/developer_settings"/>
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    style="@style/section_header_style"
+                    android:id="@+id/android_settings"
+                    android:onClick="@{androidSettingsClickListener}"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:padding="5dp"
+                    android:layout_marginStart="26dp"
+                    android:layout_marginEnd="26dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="@dimen/screen_bottom_margin"
+                    android:text="@string/settings_advanced_go_to_android_app_settings_title"
+                    android:drawableEnd="@drawable/arrow_square_out"
                     android:drawableTint="?attr/color_main2_600"
                     app:layout_constraintVertical_bias="0"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/developer_settings"
+                    app:layout_constraintTop_toBottomOf="@id/about_settings"
                     app:layout_constraintBottom_toBottomOf="parent"/>
 
             </androidx.constraintlayout.widget.ConstraintLayout>

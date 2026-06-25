@@ -659,6 +659,11 @@ class CoreContext
         Log.i("$TAG Core started, updating configuration if required")
         core.videoCodecPriorityPolicy = CodecPriorityPolicy.Auto
 
+        // The codec selection UI has been removed, so guarantee the key audio codecs are always
+        // enabled by default (parity with iOS). Any other codecs enabled by default are left as-is.
+        core.getPayloadType("opus", 48000, -1)?.enable(true)
+        core.getPayloadType("G722", 8000, -1)?.enable(true)
+
         val currentVersion = BuildConfig.VERSION_CODE
         val oldVersion = corePreferences.linphoneConfigurationVersion
         Log.w("$TAG Current configuration version is [$oldVersion]")
