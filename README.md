@@ -16,3 +16,9 @@ Assuming you have Android development tools installed, you should be able to bui
 ```pwsh
 .\gradlew assembleRelease
 ```
+
+The output of that will be in `{this project}\app\build\outputs\apk\release`
+
+## Version number
+
+Set in `app/build.gradle.kts` around line 103, `versionCode` and `versionName`.

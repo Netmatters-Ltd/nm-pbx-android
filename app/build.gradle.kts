@@ -100,8 +100,8 @@ android {
         applicationId = packageName
         minSdk = 28
         targetSdk = 35
-        versionCode = 600021 // 6.00.021
-        versionName = "6.0.21"
+        versionCode = 602001 // 6.02.002
+        versionName = "6.2.002"
 
         manifestPlaceholders["appAuthRedirectScheme"] = packageName
 

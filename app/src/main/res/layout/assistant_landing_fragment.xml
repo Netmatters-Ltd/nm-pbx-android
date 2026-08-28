@@ -12,6 +12,9 @@
             name="qrCodeClickListener"
             type="View.OnClickListener" />
         <variable
+            name="nmpbxWebsiteClickListener"
+            type="View.OnClickListener" />
+        <variable
             name="viewModel"
             type="org.linphone.ui.assistant.viewmodel.AccountLoginViewModel" />
         <variable
@@ -130,11 +133,30 @@
                 android:gravity="center"
                 android:onClick="@{() -> qrCodeViewModel.applyRemoteProvisioningUrl()}"
                 android:text="@string/assistant_provisioning_url_submit"
-                app:layout_constraintBottom_toTopOf="@+id/mountains"
+                app:layout_constraintBottom_toTopOf="@+id/nmpbx_service_required"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/provisioning_url"
                 app:layout_constraintWidth_max="@dimen/button_max_width" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/nmpbx_service_required"
+                style="@style/default_text_style"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="32dp"
+                android:gravity="center"
+                android:onClick="@{nmpbxWebsiteClickListener}"
+                android:text="@string/assistant_nmpbx_service_required"
+                android:textColor="?attr/color_main2_500"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toTopOf="@+id/mountains"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/apply_provisioning_url"
+                app:layout_constraintWidth_max="@dimen/text_input_max_width" />
 
             <ImageView
                 android:id="@+id/mountains"
