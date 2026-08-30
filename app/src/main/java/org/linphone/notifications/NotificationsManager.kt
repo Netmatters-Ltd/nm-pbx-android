@@ -67,7 +67,6 @@ import org.linphone.core.CoreKeepAliveThirdPartyAccountsService
 import org.linphone.core.CoreListenerStub
 import org.linphone.core.Factory
 import org.linphone.core.Friend
-import org.linphone.core.MediaDirection
 import org.linphone.core.tools.Log
 import org.linphone.ui.call.CallActivity
 import org.linphone.ui.main.MainActivity
@@ -836,22 +835,8 @@ class NotificationsManager
                     "$TAG RECORD_AUDIO permission has been granted, adding FOREGROUND_SERVICE_TYPE_MICROPHONE to foreground Service types mask"
                 )
             }
-            val isSendingVideo = when (call.currentParams.videoDirection) {
-                MediaDirection.SendRecv, MediaDirection.SendOnly -> true
-                else -> false
-            }
-            if (call.currentParams.isVideoEnabled && isSendingVideo) {
-                if (ActivityCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.CAMERA
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    mask = mask or Compatibility.FOREGROUND_SERVICE_TYPE_CAMERA
-                    Log.i(
-                        "$TAG CAMERA permission has been granted, adding FOREGROUND_SERVICE_TYPE_CAMERA to foreground Service types mask"
-                    )
-                }
-            }
+            // Upstream also adds FOREGROUND_SERVICE_TYPE_CAMERA here, but we have video
+            // calling disabled so the camera is never used during a call
         }
 
         if (Compatibility.isPostNotificationsPermissionGranted(context)) {
@@ -1796,7 +1781,6 @@ class NotificationsManager
         val values = hashMapOf(
             "PHONE_CALL" to Compatibility.FOREGROUND_SERVICE_TYPE_PHONE_CALL,
             "MICROPHONE" to Compatibility.FOREGROUND_SERVICE_TYPE_MICROPHONE,
-            "CAMERA" to Compatibility.FOREGROUND_SERVICE_TYPE_CAMERA,
             "SPECIAL_USE" to Compatibility.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         )
         for ((key, value) in values) {
