@@ -99,6 +99,8 @@ class CurrentCallViewModel
 
     val isRecordingEnabled = MutableLiveData<Boolean>()
 
+    val showRecordButton = MutableLiveData<Boolean>()
+
     val isRecording = MutableLiveData<Boolean>()
 
     val canBePaused = MutableLiveData<Boolean>()
@@ -536,6 +538,7 @@ class CurrentCallViewModel
             core.addListener(coreListener)
 
             isRecordingEnabled.postValue(!corePreferences.disableCallRecordings)
+            showRecordButton.postValue(corePreferences.showCallRecordingButton)
             hideVideo.postValue(!core.isVideoEnabled)
             showSwitchCamera.postValue(coreContext.showSwitchCameraButton())
 

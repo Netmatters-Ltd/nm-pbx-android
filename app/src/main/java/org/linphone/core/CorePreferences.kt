@@ -315,6 +315,10 @@ class CorePreferences
         get() = config.getBool("ui", "disable_call_recordings_feature", false)
 
     @get:WorkerThread
+    val showCallRecordingButton: Boolean
+        get() = config.getBool("ui", "show_call_recording_button", false)
+
+    @get:WorkerThread
     val maxAccountsCount: Int
         get() = config.getInt("ui", "max_account", 0) // 0 means no max
 

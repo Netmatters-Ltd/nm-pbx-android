@@ -184,6 +184,7 @@
 
         <ImageView
             android:id="@+id/record_call"
+            android:visibility="@{viewModel.showRecordButton ? View.VISIBLE : View.INVISIBLE, default=invisible}"
             android:onClick="@{() -> viewModel.toggleRecording()}"
             android:enabled="@{viewModel.isRecordingEnabled &amp;&amp; !viewModel.isPaused &amp;&amp; !viewModel.isPausedByRemote}"
             android:layout_width="0dp"
@@ -280,6 +281,7 @@
         <androidx.appcompat.widget.AppCompatTextView
             style="@style/in_call_extra_action_label_style"
             android:id="@+id/record_call_label"
+            android:visibility="@{viewModel.showRecordButton ? View.VISIBLE : View.INVISIBLE, default=invisible}"
             android:onClick="@{() -> viewModel.toggleRecording()}"
             android:enabled="@{viewModel.isRecordingEnabled &amp;&amp; !viewModel.isPaused &amp;&amp; !viewModel.isPausedByRemote}"
             android:layout_width="0dp"
