@@ -1,1 +1,1 @@
-An open source instant messaging and voice/video over IP (VoIP) phone that makes it possible to communicate freely with people over the internet via voice, video and text messaging through the SIP protocol.
+For use by existing customers of the NMPBX phone system. This is a voice over IP (VoIP) app that allows you to make and receive calls through your NMPBX system. See https://nmpbx.co.uk for more information.
