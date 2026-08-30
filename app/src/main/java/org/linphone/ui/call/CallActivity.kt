@@ -340,16 +340,10 @@ class CallActivity : GenericActivity() {
             showRedToast(getString(message), icon)
         }
 
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.e("$TAG CAMERA permission isn't granted")
-            val message = R.string.call_camera_permission_not_granted_toast
-            val icon = R.drawable.warning_circle
-            showRedToast(getString(message), icon)
-        }
+        // Upstream also warns here when the CAMERA permission is missing, but we have video
+        // calling disabled, so the camera is never used during a call. If video is ever
+        // re-enabled, toggleVideo() in CurrentCallViewModel already asks for the permission
+        // at the point it is actually needed.
     }
 
     override fun onResume() {
