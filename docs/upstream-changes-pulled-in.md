@@ -129,6 +129,60 @@ clarity. All the machinery this relies on
 `NumberOrAddressPickerDialogModel`, `DialogUtils.getNumberOrAddressPickerDialog`)
 was already present in our tree.
 
+### Android 16 background activity launch and notification trampoline fixes
+
+| | |
+|---|---|
+| Upstream commits | `42fbbc51f` (18 June 2025), `df94d6c2b` (18 August 2026), part of `892f51869` (18 August 2026) |
+| Files | `Api36Compatibility.kt` (new), `Api33Compatibility.kt`, `Api34Compatibility.kt`, `Compatibility.kt`, `CoreContext.kt`, `NotificationsManager.kt`, `NotificationBroadcastReceiver.kt`, `CallActivity.kt`, `CurrentCallViewModel.kt`, `gradle/libs.versions.toml` |
+
+Taken because we now target API 36. Android 16 changes what a `PendingIntent`
+is allowed to do in the background. `MODE_BACKGROUND_ACTIVITY_START_ALLOWED` no
+longer carries the creator's launch privileges, so `ALLOW_ALWAYS` is needed,
+and the notification trampoline restriction blocks a notification action that
+fires a broadcast receiver which then starts an activity.
+
+We were using exactly that blocked pattern. The Answer button on the incoming
+call notification was a broadcast into `NotificationBroadcastReceiver`, which
+answered the call and left `CoreContext.showCallActivity()` to bring up the UI
+with a bare `startActivity`. On API 36 that risks answering the call with audio
+running but no call screen on top.
+
+These fixes live on upstream's `master` and `release/6.2` lines only. They were
+never backported to `release/6.0`, so we have brought them across by hand. The
+answer action is now an activity `PendingIntent` built with `TaskStackBuilder`
+that starts `CallActivity` directly and asks it to answer, and both it and
+`showCallActivity()` carry an `ActivityOptions` bundle from the new
+`Compatibility.getPendingIntentActivityOptions()`.
+
+We also took upstream's non-functional drift in these files, so they sit closer
+to upstream for the next pull: the named request code constants
+(`INTENT_ANSWER_CALL_NOTIF_CODE`, `INTENT_HANGUP_CALL_NOTIF_CODE`), the rename
+of `INTENT_REMOTE_ADDRESS` to `INTENT_REMOTE_SIP_URI`, and the intent builders
+written as `.apply { }` blocks.
+
+AGP moved from 8.9.0 to 8.9.1 in the same change. 8.9.1 is the first release
+that properly supports `compileSdk = 36`, and it is what upstream moved to
+alongside their own bump. Gradle 8.11.1 in the wrapper is unchanged.
+
+Three deliberate deviations from upstream, all reviewed before implementation:
+
+1. **The answer intent's caller is honoured.** Upstream puts the caller's SIP
+   URI in the intent, then calls `answer()` and ignores it, so it answers
+   whichever call it finds in an incoming state. That is still the case at
+   upstream's tip and looks like an oversight. We call `answerCallFrom(caller)`
+   instead, which matters on a PBX where a second call can arrive while the
+   first is still ringing.
+2. **The answer extra is handled in `onNewIntent` as well as `onCreate`.**
+   `CallActivity` is `launchMode="singleTask"`. Upstream only checks the extra
+   in `onCreate`, so answering from the shade while the call screen is already
+   alive would do nothing. Our `onNewIntent` already handled the `ActiveCall`
+   and `IncomingCall` extras, so this fits the existing pattern.
+3. **The extra is removed once consumed.** `CallActivity` does not declare
+   `configChanges`, so a rotation recreates it with the same intent. Without
+   this, `onCreate` would try to answer again, find no incoming call and fire
+   `finishActivityEvent`, closing the call screen mid-call.
+
 ## Verification so far
 
 Done:

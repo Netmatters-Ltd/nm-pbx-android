@@ -314,6 +314,8 @@ class CallActivity : GenericActivity() {
                 callViewModel.refreshMicrophoneState()
             }
         }
+
+        answerCallFromIntentIfNeeded(intent)
     }
 
     override fun onStart() {
@@ -383,6 +385,10 @@ class CallActivity : GenericActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
 
+        if (answerCallFromIntentIfNeeded(intent)) {
+            return
+        }
+
         if (intent.extras?.getBoolean("ActiveCall", false) == true) {
             navigateToActiveCall(
                 callViewModel.conferenceModel.isCurrentCallInConference.value == false
@@ -391,6 +397,25 @@ class CallActivity : GenericActivity() {
             val action = IncomingCallFragmentDirections.actionGlobalIncomingCallFragment()
             findNavController(R.id.call_nav_container).navigate(action)
         }
+    }
+
+    /**
+     * Starting Android 16 the answer action of a call notification starts this Activity directly
+     * instead of going through a BroadcastReceiver, due to the notification trampoline restriction.
+     */
+    private fun answerCallFromIntentIfNeeded(intent: Intent): Boolean {
+        if (intent.extras?.getBoolean("AnswerIncomingCall", false) != true) {
+            return false
+        }
+
+        val caller = intent.extras?.getString("Caller").orEmpty()
+        // Consume the extra so the call isn't answered again if the Activity is recreated,
+        // for example when the device is rotated
+        intent.removeExtra("AnswerIncomingCall")
+
+        Log.i("$TAG Answering incoming call from [$caller]")
+        callViewModel.answerCallFrom(caller)
+        return true
     }
 
     override fun onUserLeaveHint() {

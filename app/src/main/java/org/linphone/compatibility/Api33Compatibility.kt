@@ -20,6 +20,7 @@
 package org.linphone.compatibility
 
 import android.Manifest
+import android.app.ActivityOptions
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -52,6 +53,12 @@ class Api33Compatibility {
             )
             Log.i("$TAG Feature [${PackageManager.FEATURE_TELECOM}] is [${if (hasFeature) "available" else "not available"}]")
             return hasFeature
+        }
+
+        fun getPendingIntentActivityOptions(): ActivityOptions {
+            val options = ActivityOptions.makeBasic()
+            options.isPendingIntentBackgroundActivityLaunchAllowed = true
+            return options
         }
     }
 }

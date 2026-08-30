@@ -45,7 +45,7 @@ class NotificationBroadcastReceiver : BroadcastReceiver() {
             Thread.sleep(50)
         }
 
-        if (intent.action == NotificationsManager.INTENT_ANSWER_CALL_NOTIF_ACTION || intent.action == NotificationsManager.INTENT_HANGUP_CALL_NOTIF_ACTION) {
+        if (intent.action == NotificationsManager.INTENT_HANGUP_CALL_NOTIF_ACTION) {
             handleCallIntent(intent, notificationId)
         } else if (intent.action == NotificationsManager.INTENT_REPLY_MESSAGE_NOTIF_ACTION || intent.action == NotificationsManager.INTENT_MARK_MESSAGE_AS_READ_NOTIF_ACTION) {
             handleChatIntent(context, intent, notificationId)
@@ -53,7 +53,7 @@ class NotificationBroadcastReceiver : BroadcastReceiver() {
     }
 
     private fun handleCallIntent(intent: Intent, notificationId: Int) {
-        val remoteSipAddress = intent.getStringExtra(NotificationsManager.INTENT_REMOTE_ADDRESS)
+        val remoteSipAddress = intent.getStringExtra(NotificationsManager.INTENT_REMOTE_SIP_URI)
         if (remoteSipAddress == null) {
             Log.e("$TAG Remote SIP address is null for call notification ID [$notificationId]")
             return
@@ -66,17 +66,13 @@ class NotificationBroadcastReceiver : BroadcastReceiver() {
             if (call == null) {
                 Log.e("$TAG Couldn't find call from remote address [$remoteSipAddress]")
             } else {
-                if (intent.action == NotificationsManager.INTENT_ANSWER_CALL_NOTIF_ACTION) {
-                    coreContext.answerCall(call)
-                } else {
-                    coreContext.terminateCall(call)
-                }
+                coreContext.terminateCall(call)
             }
         }
     }
 
     private fun handleChatIntent(context: Context, intent: Intent, notificationId: Int) {
-        val remoteSipAddress = intent.getStringExtra(NotificationsManager.INTENT_REMOTE_ADDRESS)
+        val remoteSipAddress = intent.getStringExtra(NotificationsManager.INTENT_REMOTE_SIP_URI)
         if (remoteSipAddress == null) {
             Log.e("$TAG Remote SIP address is null for notification ID [$notificationId]")
             return
