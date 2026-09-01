@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Camera is only used to scan a QR code during onboarding, so it is entirely optional -->
     <uses-feature
-        android:name="android.hardware.camera"
+        android:name="android.hardware.camera.any"
         android:required="false" />
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -27,7 +28,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <!-- Needed for Android 14
     https://developer.android.com/about/versions/14/behavior-changes-14#fgs-types -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <!-- Video calling is disabled, so the camera is never used by a foreground service.
+    The linphone SDK declares this permission, so we explicitly remove it during the merge -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_CAMERA"
+        tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <!-- Required for foreground service started when a push is being received,
@@ -55,7 +60,7 @@
         android:theme="@style/Theme.Linphone"
         android:appCategory="social"
         android:largeHeap="true"
-        tools:targetApi="35">
+        tools:targetApi="36">
 
         <!-- Required for chat message & call notifications to be displayed in Android auto -->
         <meta-data
@@ -157,7 +162,7 @@
         <service
             android:name=".core.CoreInCallService"
             android:exported="false"
-            android:foregroundServiceType="phoneCall|camera|microphone"
+            android:foregroundServiceType="phoneCall|microphone"
             android:stopWithTask="false"
             android:label="@string/app_name" />
 

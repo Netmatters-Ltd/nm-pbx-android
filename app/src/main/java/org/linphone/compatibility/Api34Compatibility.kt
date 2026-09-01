@@ -19,13 +19,16 @@
  */
 package org.linphone.compatibility
 
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import androidx.annotation.RequiresApi
 import org.linphone.core.tools.Log
@@ -77,6 +80,23 @@ class Api34Compatibility {
             } catch (anfe: ActivityNotFoundException) {
                 Log.e("$TAG Failed to start intent for granting full screen intent permission: $anfe")
             }
+        }
+
+        fun sendPendingIntent(pendingIntent: PendingIntent, bundle: Bundle) {
+            pendingIntent.send(bundle)
+        }
+
+        fun getPendingIntentActivityOptions(creator: Boolean): ActivityOptions {
+            val options = ActivityOptions.makeBasic().apply {
+                if (creator) {
+                    pendingIntentCreatorBackgroundActivityStartMode =
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                } else {
+                    pendingIntentBackgroundActivityStartMode =
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                }
+            }
+            return options
         }
     }
 }

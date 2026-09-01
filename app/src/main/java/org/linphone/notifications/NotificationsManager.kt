@@ -67,7 +67,6 @@ import org.linphone.core.CoreKeepAliveThirdPartyAccountsService
 import org.linphone.core.CoreListenerStub
 import org.linphone.core.Factory
 import org.linphone.core.Friend
-import org.linphone.core.MediaDirection
 import org.linphone.core.tools.Log
 import org.linphone.ui.call.CallActivity
 import org.linphone.ui.main.MainActivity
@@ -85,14 +84,16 @@ class NotificationsManager
         private const val TAG = "[Notifications Manager]"
 
         const val INTENT_HANGUP_CALL_NOTIF_ACTION = "org.linphone.HANGUP_CALL_ACTION"
-        const val INTENT_ANSWER_CALL_NOTIF_ACTION = "org.linphone.ANSWER_CALL_ACTION"
         const val INTENT_REPLY_MESSAGE_NOTIF_ACTION = "org.linphone.REPLY_ACTION"
         const val INTENT_MARK_MESSAGE_AS_READ_NOTIF_ACTION = "org.linphone.MARK_AS_READ_ACTION"
         const val INTENT_NOTIF_ID = "NOTIFICATION_ID"
 
+        const val INTENT_ANSWER_CALL_NOTIF_CODE = 2
+        const val INTENT_HANGUP_CALL_NOTIF_CODE = 3
+
         const val KEY_TEXT_REPLY = "key_text_reply"
         const val INTENT_LOCAL_IDENTITY = "LOCAL_IDENTITY"
-        const val INTENT_REMOTE_ADDRESS = "REMOTE_ADDRESS"
+        const val INTENT_REMOTE_SIP_URI = "REMOTE_ADDRESS"
 
         const val CHAT_TAG = "Chat"
         private const val MISSED_CALL_TAG = "Missed call"
@@ -636,18 +637,22 @@ class NotificationsManager
         val notifiable = getNotifiableForCall(call)
 
         val callNotificationIntent = Intent(context, CallActivity::class.java)
-        callNotificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        callNotificationIntent.addFlags(
+            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        )
         if (isIncoming) {
             callNotificationIntent.putExtra("IncomingCall", true)
         } else {
             callNotificationIntent.putExtra("ActiveCall", true)
         }
 
+        val options = Compatibility.getPendingIntentActivityOptions(true)
         val pendingIntent = PendingIntent.getActivity(
             context,
             0,
             callNotificationIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            options.toBundle()
         )
 
         val notification = createCallNotification(
@@ -830,22 +835,8 @@ class NotificationsManager
                     "$TAG RECORD_AUDIO permission has been granted, adding FOREGROUND_SERVICE_TYPE_MICROPHONE to foreground Service types mask"
                 )
             }
-            val isSendingVideo = when (call.currentParams.videoDirection) {
-                MediaDirection.SendRecv, MediaDirection.SendOnly -> true
-                else -> false
-            }
-            if (call.currentParams.isVideoEnabled && isSendingVideo) {
-                if (ActivityCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.CAMERA
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    mask = mask or Compatibility.FOREGROUND_SERVICE_TYPE_CAMERA
-                    Log.i(
-                        "$TAG CAMERA permission has been granted, adding FOREGROUND_SERVICE_TYPE_CAMERA to foreground Service types mask"
-                    )
-                }
-            }
+            // Upstream also adds FOREGROUND_SERVICE_TYPE_CAMERA here, but we have video
+            // calling disabled so the camera is never used during a call
         }
 
         if (Compatibility.isPostNotificationsPermissionGranted(context)) {
@@ -1464,13 +1455,15 @@ class NotificationsManager
     @AnyThread
     fun getCallDeclinePendingIntent(notifiable: Notifiable): PendingIntent {
         val hangupIntent = Intent(context, NotificationBroadcastReceiver::class.java)
-        hangupIntent.action = INTENT_HANGUP_CALL_NOTIF_ACTION
-        hangupIntent.putExtra(INTENT_NOTIF_ID, notifiable.notificationId)
-        hangupIntent.putExtra(INTENT_REMOTE_ADDRESS, notifiable.remoteAddress)
+        hangupIntent.apply {
+            action = INTENT_HANGUP_CALL_NOTIF_ACTION
+            putExtra(INTENT_NOTIF_ID, notifiable.notificationId)
+            putExtra(INTENT_REMOTE_SIP_URI, notifiable.remoteAddress)
+        }
 
         return PendingIntent.getBroadcast(
             context,
-            3,
+            INTENT_HANGUP_CALL_NOTIF_CODE,
             hangupIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -1478,17 +1471,25 @@ class NotificationsManager
 
     @AnyThread
     fun getCallAnswerPendingIntent(notifiable: Notifiable): PendingIntent {
-        val answerIntent = Intent(context, NotificationBroadcastReceiver::class.java)
-        answerIntent.action = INTENT_ANSWER_CALL_NOTIF_ACTION
-        answerIntent.putExtra(INTENT_NOTIF_ID, notifiable.notificationId)
-        answerIntent.putExtra(INTENT_REMOTE_ADDRESS, notifiable.remoteAddress)
-
-        return PendingIntent.getBroadcast(
-            context,
-            2,
-            answerIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        // Starting Android 16 a notification action can't start an Activity through a
+        // BroadcastReceiver anymore (notification trampoline restriction), so the CallActivity
+        // is started directly and asked to answer the call once it is created.
+        val pendingIntent = TaskStackBuilder.create(context).run {
+            addNextIntentWithParentStack(
+                Intent(context, CallActivity::class.java).apply {
+                    action = Intent.ACTION_MAIN // Needed as well
+                    flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    putExtra("AnswerIncomingCall", true)
+                    putExtra("Caller", notifiable.remoteAddress)
+                }
+            )
+            getPendingIntent(
+                INTENT_ANSWER_CALL_NOTIF_CODE,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                Compatibility.getPendingIntentActivityOptions(creator = true).toBundle()
+            )!!
+        }
+        return pendingIntent
     }
 
     @WorkerThread
@@ -1532,7 +1533,7 @@ class NotificationsManager
         replyIntent.action = INTENT_REPLY_MESSAGE_NOTIF_ACTION
         replyIntent.putExtra(INTENT_NOTIF_ID, notifiable.notificationId)
         replyIntent.putExtra(INTENT_LOCAL_IDENTITY, notifiable.localIdentity)
-        replyIntent.putExtra(INTENT_REMOTE_ADDRESS, notifiable.remoteAddress)
+        replyIntent.putExtra(INTENT_REMOTE_SIP_URI, notifiable.remoteAddress)
 
         // PendingIntents attached to actions with remote inputs must be mutable
         val replyPendingIntent = PendingIntent.getBroadcast(
@@ -1559,7 +1560,7 @@ class NotificationsManager
         markAsReadIntent.action = INTENT_MARK_MESSAGE_AS_READ_NOTIF_ACTION
         markAsReadIntent.putExtra(INTENT_NOTIF_ID, notifiable.notificationId)
         markAsReadIntent.putExtra(INTENT_LOCAL_IDENTITY, notifiable.localIdentity)
-        markAsReadIntent.putExtra(INTENT_REMOTE_ADDRESS, notifiable.remoteAddress)
+        markAsReadIntent.putExtra(INTENT_REMOTE_SIP_URI, notifiable.remoteAddress)
 
         return PendingIntent.getBroadcast(
             context,
@@ -1780,7 +1781,6 @@ class NotificationsManager
         val values = hashMapOf(
             "PHONE_CALL" to Compatibility.FOREGROUND_SERVICE_TYPE_PHONE_CALL,
             "MICROPHONE" to Compatibility.FOREGROUND_SERVICE_TYPE_MICROPHONE,
-            "CAMERA" to Compatibility.FOREGROUND_SERVICE_TYPE_CAMERA,
             "SPECIAL_USE" to Compatibility.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         )
         for ((key, value) in values) {

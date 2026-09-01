@@ -94,14 +94,14 @@ project.tasks.preBuild.dependsOn("linphoneSdkSource")
 
 android {
     namespace = "org.linphone"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = packageName
         minSdk = 28
-        targetSdk = 35
-        versionCode = 600021 // 6.00.021
-        versionName = "6.0.21"
+        targetSdk = 36
+        versionCode = 602005 // 6.02.006
+        versionName = "6.2.006"
 
         manifestPlaceholders["appAuthRedirectScheme"] = packageName
 

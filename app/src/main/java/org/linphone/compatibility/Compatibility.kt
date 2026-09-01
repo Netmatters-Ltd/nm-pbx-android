@@ -22,11 +22,14 @@ package org.linphone.compatibility
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityOptions
 import android.app.Notification
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.os.Environment
 import android.util.Patterns
 import android.view.View
@@ -41,7 +44,6 @@ class Compatibility {
         private const val TAG = "[Compatibility]"
 
         const val FOREGROUND_SERVICE_TYPE_PHONE_CALL = 4 // ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
-        const val FOREGROUND_SERVICE_TYPE_CAMERA = 64 // ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
         const val FOREGROUND_SERVICE_TYPE_MICROPHONE = 128 // ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         const val FOREGROUND_SERVICE_TYPE_SPECIAL_USE = 1073741824 // ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
 
@@ -96,6 +98,15 @@ class Compatibility {
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.CAMERA
             )
+        }
+
+        fun hasTelecomManagerFeature(context: Context): Boolean {
+            if (Version.sdkAboveOrEqual(Version.API33_ANDROID_13_TIRAMISU)) {
+                return Api33Compatibility.hasTelecomManagerFeature(context)
+            } else if (Version.sdkAboveOrEqual(Version.API26_O_80)) {
+                return Api28Compatibility.hasTelecomManagerFeature(context)
+            }
+            return false
         }
 
         fun hasFullScreenIntentPermission(context: Context): Boolean {
@@ -200,6 +211,25 @@ class Compatibility {
                 return Api29Compatibility.isIpAddress(string)
             }
             return Patterns.IP_ADDRESS.matcher(string).matches()
+        }
+
+        fun sendPendingIntent(pendingIntent: PendingIntent, bundle: Bundle) {
+            if (Version.sdkAboveOrEqual(Version.API34_ANDROID_14_UPSIDE_DOWN_CAKE)) {
+                return Api34Compatibility.sendPendingIntent(pendingIntent, bundle)
+            }
+            pendingIntent.send()
+        }
+
+        fun getPendingIntentActivityOptions(creator: Boolean): ActivityOptions {
+            if (Version.sdkAboveOrEqual(Version.API36_ANDROID_16_BAKLAVA)) {
+                return Api36Compatibility.getPendingIntentActivityOptions(creator)
+            } else if (Version.sdkAboveOrEqual(Version.API34_ANDROID_14_UPSIDE_DOWN_CAKE)) {
+                return Api34Compatibility.getPendingIntentActivityOptions(creator)
+            } else if (Version.sdkAboveOrEqual(Version.API33_ANDROID_13_TIRAMISU)) {
+                return Api33Compatibility.getPendingIntentActivityOptions()
+            }
+
+            return ActivityOptions.makeBasic()
         }
     }
 }

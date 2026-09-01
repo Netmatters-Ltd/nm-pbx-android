@@ -19,11 +19,14 @@
  */
 package org.linphone.ui.assistant.fragment
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.UiThread
+import androidx.core.net.toUri
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.navGraphViewModels
 import org.linphone.R
@@ -71,6 +74,25 @@ class LandingFragment : GenericFragment() {
 
         binding.setBackClickListener {
             requireActivity().finish()
+        }
+
+        binding.setNmpbxWebsiteClickListener {
+            val url = getString(R.string.website_nmpbx_url)
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+            } catch (ise: IllegalStateException) {
+                Log.e(
+                    "$TAG Can't start ACTION_VIEW intent for URL [$url], IllegalStateException: $ise"
+                )
+            } catch (anfe: ActivityNotFoundException) {
+                Log.e(
+                    "$TAG Can't start ACTION_VIEW intent for URL [$url], ActivityNotFoundException: $anfe"
+                )
+            } catch (e: Exception) {
+                Log.e(
+                    "$TAG Can't start ACTION_VIEW intent for URL [$url]: $e"
+                )
+            }
         }
 
         binding.setQrCodeClickListener {

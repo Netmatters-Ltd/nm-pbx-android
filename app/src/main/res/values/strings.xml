@@ -32,6 +32,7 @@
 
     <string name="website_contact_url" translatable="false">https://www.netmatters.co.uk/contact-us</string>
     <string name="website_download_url" translatable="false">https://www.netmatters.co.uk/</string>
+    <string name="website_nmpbx_url" translatable="false">https://www.nmpbx.co.uk/</string>
     <string name="website_user_guide_url" translatable="false">https://www.netmatters.co.uk/</string>
     <string name="website_privacy_policy_url" translatable="false">https://www.netmatters.co.uk/</string>
     <string name="website_terms_and_conditions_url" translatable="false">https://www.netmatters.co.uk/</string>
@@ -146,6 +147,7 @@
     <string name="assistant_provisioning_url_explanation">Prefer not to use the camera? Enter your provisioning URL instead.</string>
     <string name="assistant_provisioning_url_placeholder">Provisioning URL</string>
     <string name="assistant_provisioning_url_submit">Apply</string>
+    <string name="assistant_nmpbx_service_required">This app requires an active NMPBX phone system. If your business doesn\'t have NMPBX yet, visit <u>nmpbx.co.uk</u> to find out more.</string>
     <string name="assistant_login_third_party_sip_account">Use a third party SIP account</string>
     <string name="assistant_login_third_party_sip_account_title">Third party SIP account</string>
     <string name="assistant_login_using_single_sign_on">Single sign on</string>

@@ -99,6 +99,8 @@ class CurrentCallViewModel
 
     val isRecordingEnabled = MutableLiveData<Boolean>()
 
+    val showRecordButton = MutableLiveData<Boolean>()
+
     val isRecording = MutableLiveData<Boolean>()
 
     val canBePaused = MutableLiveData<Boolean>()
@@ -536,6 +538,7 @@ class CurrentCallViewModel
             core.addListener(coreListener)
 
             isRecordingEnabled.postValue(!corePreferences.disableCallRecordings)
+            showRecordButton.postValue(corePreferences.showCallRecordingButton)
             hideVideo.postValue(!core.isVideoEnabled)
             showSwitchCamera.postValue(coreContext.showSwitchCameraButton())
 
@@ -601,10 +604,11 @@ class CurrentCallViewModel
     }
 
     @UiThread
-    fun answer() {
+    fun answerCallFrom(caller: String) {
         coreContext.postOnCoreThread { core ->
             val call = core.calls.find {
-                LinphoneUtils.isCallIncoming(it.state)
+                LinphoneUtils.isCallIncoming(it.state) &&
+                    (caller.isEmpty() || caller == it.remoteAddress.asStringUriOnly())
             }
             if (call != null) {
                 Log.i("$TAG Answering call [${call.remoteAddress.asStringUriOnly()}]")
@@ -614,6 +618,11 @@ class CurrentCallViewModel
                 finishActivityEvent.postValue(Event(true))
             }
         }
+    }
+
+    @UiThread
+    fun answer() {
+        answerCallFrom("")
     }
 
     @UiThread
