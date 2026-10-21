@@ -64,6 +64,9 @@ class ContactsListViewModel
 
     val areAllContactsDisplayed = MutableLiveData<Boolean>()
 
+    // True when more contacts matched than are listed, so the UI can point the user at search
+    val contactsListTruncated = MutableLiveData<Boolean>()
+
     val searchInProgress = MutableLiveData<Boolean>()
 
     val isDefaultAccountLinphone = MutableLiveData<Boolean>()
@@ -143,8 +146,9 @@ class ContactsListViewModel
 
             coreContext.contactsManager.addListener(contactsListener)
             magicSearch = core.createMagicSearch()
-            magicSearch.limitedSearch = true
-            magicSearch.searchLimit = corePreferences.magicSearchResultsLimit
+            // No Magic search limit: it applies before extensions are split from contacts, so it
+            // silently dropped everything after the first results (including extensions).
+            magicSearch.limitedSearch = false
             magicSearch.addListener(magicSearchListener)
 
             favouritesMagicSearch = core.createMagicSearch()
@@ -340,10 +344,28 @@ class ContactsListViewModel
         // Do not call destroy() on previous list items as they are cached and will be re-used
         Log.i("$TAG Processing [${results.size}] results, favourites is [$favourites]")
 
+        // Keep only the results for the displayed tab before building any avatar model (the costly
+        // part), so the Contacts tab never pays for extensions and vice versa. Every result of
+        // the displayed tab still gets a model, so extensions are all seen and their presence tracked.
+        val defaultDomain = coreContext.core.defaultAccount?.params?.domain.orEmpty()
+        val collator = Collator.getInstance(Locale.getDefault())
+        val tabResults = results
+            .filter { isInternalResult(it, defaultDomain) == extensionsMode }
+            .sortedWith { result1, result2 ->
+                collator.compare(getResultName(result1), getResultName(result2))
+            }
+
+        // Only the Contacts tab is capped, including its search results: typing more of the name
+        // narrows them down so any contact can be reached. Extensions and favourites are never
+        // capped, the app needs to see them all to track their presence.
+        val maxContacts = corePreferences.maxContactsDisplayed
+        val capped = !favourites && !extensionsMode && maxContacts > 0 && tabResults.size > maxContacts
+        val toDisplay = if (capped) tabResults.take(maxContacts) else tabResults
+
         val list = arrayListOf<ContactAvatarModel>()
         var count = 0
 
-        for (result in results) {
+        for (result in toDisplay) {
             val friend = result.friend
 
             if (friend != null) {
@@ -373,36 +395,44 @@ class ContactsListViewModel
             model.isFavourite.postValue(starred)
 
             if (!favourites && firstLoad && count == 20) {
-                // Filter the incremental slice too, otherwise wrong-tab contacts flash briefly
-                contactsList.postValue(filterByMode(list))
+                // Incremental slice, already limited to the displayed tab and sorted
+                contactsList.postValue(ArrayList(list))
+                contactsListTruncated.postValue(capped)
             }
         }
 
-        val collator = Collator.getInstance(Locale.getDefault())
-        list.sortWith { model1, model2 ->
-            collator.compare(model1.friend.name, model2.friend.name)
-        }
-
-        val filteredList = filterByMode(list)
-
         searchInProgress.postValue(false)
         if (favourites) {
-            favouritesList.postValue(filteredList)
+            favouritesList.postValue(list)
         } else {
-            contactsList.postValue(filteredList)
+            contactsList.postValue(list)
+            contactsListTruncated.postValue(capped)
             firstLoad = false
         }
 
         Log.i(
-            "$TAG Processed [${results.size}] results into [${filteredList.size} contacts] (extensionsMode [$extensionsMode])"
+            "$TAG Processed [${results.size}] results into [${list.size} contacts] (extensionsMode [$extensionsMode], capped [$capped] from [${tabResults.size}])"
         )
     }
 
+    // Same rule as ContactAvatarModel.isInternal, without having to build a model first
     @WorkerThread
-    private fun filterByMode(list: ArrayList<ContactAvatarModel>): ArrayList<ContactAvatarModel> {
-        return ArrayList(
-            list.filter { if (extensionsMode) it.isInternal else !it.isInternal }
-        )
+    private fun isInternalResult(result: SearchResult, defaultDomain: String): Boolean {
+        if (defaultDomain.isEmpty()) {
+            return false
+        }
+
+        val friend = result.friend
+        return if (friend != null) {
+            friend.addresses.any { it.domain == defaultDomain }
+        } else {
+            result.address?.domain == defaultDomain
+        }
+    }
+
+    @WorkerThread
+    private fun getResultName(result: SearchResult): String {
+        return result.friend?.name ?: result.address?.displayName ?: result.address?.username.orEmpty()
     }
 
     @WorkerThread

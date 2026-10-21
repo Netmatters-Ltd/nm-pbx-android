@@ -354,6 +354,13 @@ class CorePreferences
     val magicSearchResultsLimit: Int
         get() = config.getInt("ui", "max_number_of_magic_search_results", 300)
 
+    // Maximum number of external contacts listed in the Contacts tab (and its search results),
+    // typing more of the name narrows the results to reach any contact. 0 or less disables the cap.
+    // Extensions are never capped, the app needs to see them all to track their presence.
+    @get:WorkerThread
+    val maxContactsDisplayed: Int
+        get() = config.getInt("ui", "max_number_of_contacts_displayed", 100)
+
     @get:WorkerThread
     val singleSignOnClientId: String
         get() = config.getString("app", "oidc_client_id", "linphone")!!
