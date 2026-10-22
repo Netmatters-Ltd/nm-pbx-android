@@ -37,6 +37,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.io.File
@@ -45,6 +46,7 @@ import org.linphone.core.tools.Log
 import org.linphone.databinding.ContactsListFragmentBinding
 import org.linphone.ui.main.MainActivity
 import org.linphone.ui.main.contacts.adapter.ContactsListAdapter
+import org.linphone.ui.main.contacts.adapter.ContactsListFooterAdapter
 import org.linphone.ui.main.contacts.model.ContactAvatarModel
 import org.linphone.ui.main.contacts.viewmodel.ContactsListViewModel
 import org.linphone.ui.main.fragment.AbstractMainFragment
@@ -64,6 +66,8 @@ class ContactsListFragment : AbstractMainFragment() {
 
     private lateinit var adapter: ContactsListAdapter
     private lateinit var favouritesAdapter: ContactsListAdapter
+    private lateinit var footerAdapter: ContactsListFooterAdapter
+    private lateinit var contactsConcatAdapter: ConcatAdapter
 
     private var bottomSheetDialog: BottomSheetDialogFragment? = null
 
@@ -99,6 +103,8 @@ class ContactsListFragment : AbstractMainFragment() {
 
         adapter = ContactsListAdapter()
         favouritesAdapter = ContactsListAdapter(favourites = true)
+        footerAdapter = ContactsListFooterAdapter()
+        contactsConcatAdapter = ConcatAdapter(adapter, footerAdapter)
     }
 
     override fun onCreateView(
@@ -137,12 +143,20 @@ class ContactsListFragment : AbstractMainFragment() {
 
             // Wait for adapter to have items before setting it in the RecyclerView,
             // otherwise scroll position isn't retained
-            if (binding.contactsList.adapter != adapter) {
-                binding.contactsList.adapter = adapter
+            if (binding.contactsList.adapter != contactsConcatAdapter) {
+                binding.contactsList.adapter = contactsConcatAdapter
             }
 
             Log.i("$TAG Contacts list updated with [${it.size}] items")
             listViewModel.fetchInProgress.value = false
+        }
+
+        listViewModel.contactsListTruncated.observe(viewLifecycleOwner) {
+            updateFooterMessage()
+        }
+
+        listViewModel.isListFiltered.observe(viewLifecycleOwner) {
+            updateFooterMessage()
         }
 
         listViewModel.favouritesList.observe(
@@ -243,6 +257,19 @@ class ContactsListFragment : AbstractMainFragment() {
 
         bottomSheetDialog?.dismiss()
         bottomSheetDialog = null
+    }
+
+    private fun updateFooterMessage() {
+        val message = if (listViewModel.contactsListTruncated.value == true) {
+            if (listViewModel.isListFiltered.value == true) {
+                R.string.contacts_list_search_truncated_message
+            } else {
+                R.string.contacts_list_truncated_message
+            }
+        } else {
+            0
+        }
+        footerAdapter.setMessage(message)
     }
 
     private fun configureAdapter(adapter: ContactsListAdapter) {
