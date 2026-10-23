@@ -108,7 +108,8 @@ class ContactAvatarModel
         isFavourite.postValue(friend.starred)
         initials.postValue(AppUtils.getInitials(friend.name.orEmpty()))
         showTrust.postValue(true)
-        picturePath.postValue(getAvatarUri(friend).toString())
+        // Empty rather than "null" when there's no picture, so the avatar goes straight to initials
+        picturePath.postValue(getAvatarUri(friend)?.toString().orEmpty())
 
         val domain = coreContext.core.defaultAccount?.params?.domain.orEmpty()
         isInternal = domain.isNotEmpty() && friend.addresses.any { it.domain == domain }

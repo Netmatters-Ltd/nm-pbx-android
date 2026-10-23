@@ -11,8 +11,8 @@ We were looking into slow loading of the Extensions and Contacts lists when ther
 | 1 | `GenericActivity.getTheme()` re-applies the theme on every call | Main cause of slow list layout, and it gets worse the longer the app runs | Fixed |
 | 2 | Extension avatar models leak on every list rebuild, each holding its base64 photo | Memory grows about 1.5MB per Extensions visit on the test server; most likely cause of the crash | Fixed |
 | 3 | First CardDAV sync of about 5,000 vCards takes 2.5 minutes | Lists are empty until it completes | Mostly inside the SDK |
-| 4 | Presence is subscribed for about 3,500 external phone numbers | Privacy concern and extra presence load | Needs a decision |
-| 5 | Rows rebuilt twice per load; repeated native calls in sorting | Smaller CPU costs on main and core threads | Not fixed |
+| 4 | Presence is subscribed for about 3,500 external phone numbers | About 0.5s of background CPU and 48KB of data per re-subscription, a few times a day | Deferred; cost measured and judged not worth an SDK build now |
+| 5 | Rows rebuilt twice per load; per-result native calls when processing search results | Smaller CPU costs on main and core threads | Row rebuild fixed; result processing investigated, no simple fix |
 
 The crash itself was not reproduced. The test tablet had no record of an app crash, ANR or native crash.
 
@@ -140,14 +140,60 @@ The aggregated RLS SUBSCRIBE therefore lists 3,512 unique resources. Only 14 of 
 
 After each successful sync, `ContactsManager` also toggles subscriptions off and on to force a fresh SUBSCRIBE, which repeats this every time.
 
-**Needs a decision:** either the server keeps extensions in a separate address book, or the app turns off presence for friends that are not extensions (for example `friend.isSubscribesEnabled = false` for external entries).
+Changing how the address books are served is ruled out, as customers already use them.
+
+**What we found when looking for an app-side fix:**
+
+- The SDK builds the resource list in `FriendList::createResourceListXml` from `mFriendsMapByUri`. `Friend::addAddressesAndNumbersIntoMaps` adds every SIP address and every phone number (as `sip:<number>@<domain>;user=phone`) of every friend in the list.
+- The per-friend `isSubscribesEnabled` flag only affects individual subscriptions, not the resource list, and there is no configuration option that leaves phone numbers out. Upstream master behaves the same way.
+- The desktop app solved this with an SDK source patch, `liblinphone-rls-exclude-phone-numbers.patch` in `linphone-desktop/nm-pbx-docs/sdk-patches/`, which skips `;user=phone` entries (`[sip] rls_include_phone_numbers=1` restores upstream behaviour). The desktop build compiles the SDK from source, so the patch is applied to the source tree and built with the app.
+- `createResourceListXml` is identical in 5.4.114 (desktop) and upstream master, and the desktop patch applies cleanly to master, so it should apply to 5.5.16 (Android) as well.
+
+**Options for Android:**
+
+1. **Build a patched Android SDK (recommended).** This project already supports a locally built SDK: set `LinphoneSdkBuildDir` in `gradle.properties` and the build uses `<dir>/maven_repository` in place of Belledonne's prebuilt SDK. Upstream supports Android builds on Linux or macOS, or in their Docker image (`bc-dev-android-r27`); this machine has WSL (Ubuntu 22.04) and Docker. Costs: a first-time build setup, somewhere to keep the built SDK so release builds use it, and re-applying the patch on SDK upgrades. Note that the SDK source and its 48 submodules, and the Docker image, are all hosted on `gitlab.linphone.org`, which was unreachable from the office network on 23 October 2026.
+2. **App-only workaround.** Turn off subscriptions on the CardDAV list and subscribe through a separate hidden list holding copies of the extensions' SIP addresses only. Presence would then arrive on the copies, so every place that reads presence (contact rows, our own status in `PresenceManager`) would need redirecting, and the copies would need filtering out of contact searches and caller lookups. This avoids an SDK build but touches a lot of the app.
+
+**Measured cost**, from the SDK logs captured on 23 October 2026 (3,512 entries, of which about 23 are needed). The SDK is a release-built native library even in our debug builds, so these timings are representative.
+
+| Per full re-subscription | Now | Extensions only |
+|---|---|---|
+| Data | About 24KB up and 24KB down (deflate-compressed from 473KB of XML out and 496KB back) | Under 1KB each way |
+| Core thread CPU | About 130-280ms to build and compress the list, plus about 210ms to decompress and handle the full-state NOTIFY | A few milliseconds |
+| Log volume | Each list is logged line by line: 46,585 lines (3MB), 23% of all log lines in the 35 minutes captured | Negligible |
+| Lasting memory | No difference. The SDK keeps phone numbers in its lookup map either way; the patch only filters when building the list | |
+
+Routine presence updates are small partial NOTIFYs (about 0.5KB) and are unaffected. Full re-subscriptions happened:
+
+- at every app start, usually twice: once on start, then again when `ContactsManager` toggles subscriptions after the CardDAV sync succeeds. The reply to the first one arrived after it had been replaced, so it was rejected and wasted.
+- on most returns to the foreground: 4 of the 6 foreground events captured.
+- probably on each hourly renewal (`Expires: 3600`), although the logs were too short to confirm this.
+
+For a typical user that is roughly 10-30 exchanges a day: about 0.5-1.5MB of data and 5-15 seconds of background CPU. This is negligible for battery and data. The only user-visible effect is the core thread being busy for about half a second as the app opens, which can slightly delay the lists on a low-spec device. The cost scales with the number of contact phone numbers; the desktop test address book (8,352 numbers) would be about 1 second per exchange on the test tablet.
+
+The numbers only go to our own presence server, and they come from our own CardDAV server in the first place, so the privacy concern is about tidiness rather than exposure.
+
+**Decision:** deferred. The benefit is small compared with findings 1 and 2, and the fix needs SDK build infrastructure, ongoing maintenance at each SDK upgrade, and access to `gitlab.linphone.org`. Revisit if a customer's address book is much larger than the test one, or if we end up building the Android SDK for another reason, when adding this patch would cost little extra.
+
+**Cheaper app-only improvements** that would recover part of the waste without an SDK build:
+
+- Only toggle subscriptions after a CardDAV sync when it is needed (the first sync after provisioning, when the list started empty, or when the list has actually changed). This removes one of the two start-up exchanges and the rejected reply.
+- Reduce SDK log verbosity in release builds (see also finding 3). Not yet measured.
 
 ### 5. Smaller costs
 
-- `ContactDiffCallback.areContentsTheSame` (`ContactsListAdapter.kt`) always returns `false`. Combined with the default item animator, every visible row is recreated when the full list replaces the first 20-item slice, so each load has two expensive layout passes.
-- `processMagicSearchResults` sorts with a comparator that calls `getResultName` (two native calls) on each comparison, and `isInternalResult` reads `friend.addresses` for every result. During a tab switch this was about 40% of the core thread's time. Computing the name and the extension check once per result would remove most of it.
-- Every tab switch builds a new fragment, view model, Magic search and full set of row views. Keeping the list state between tabs would avoid repeating that work.
-- `ContactAvatarModel.getAvatarUri` returns `null` for CardDAV friends without a photo, and `picturePath` then holds the string `"null"`. The image loader tries and fails to load it before falling back to initials.
+- **Rows rebuilt on every update (fixed).** `ContactDiffCallback.areContentsTheSame` (`ContactsListAdapter.kt`) always returns `false`, which is needed because every update hands the rows new model objects. Combined with the default item animator's change animation, every visible row got a newly inflated view rather than a rebind, so each load had two expensive layout passes. Change animations are now disabled on the contacts and favourites lists (`ContactsListFragment`), so rows are rebound in place.
+- **`"null"` picture path (fixed).** `ContactAvatarModel.getAvatarUri` returns `null` for CardDAV friends without a photo, and `picturePath` then held the string `"null"`, so the image loader tried and failed to load it before falling back to initials. It now holds an empty string, which goes straight to initials.
+- **Processing search results (investigated, not changed).** We first thought the sort comparator was costly because it makes native calls on each comparison. Reading each result's friend and name once and sorting on collation keys made no difference (Extensions) or was slightly slower (Contacts), so it was reverted. A CPU profile showed why: processing is about 72% of the core thread during a switch, and it is dominated by one `SearchResult.getFriend` call (27%) and one `Friend.getName` call (23%) for each of the 5,028 results, which both versions make. The results already arrive close to sorted, so the sort itself makes few comparisons. The real fix is to process fewer results per tab, for example by keeping extensions in their own address book or friend list (see finding 4) so each tab only searches its own entries. Note these timings are from a debug build, where the Java side of each native call is not compiled, so the release cost will be lower.
+- **New fragment on every tab switch (not changed).** Every tab switch builds a new fragment, view model, Magic search and full set of row views. Keeping the list state between tabs would avoid repeating that work, but it's a larger structural change.
+
+**Result** of the two fixes, same 10-round tab-switch test on the debug build, following fixes 1 and 2:
+
+| | Before | After |
+|---|---|---|
+| Layout passes over the 400ms warning threshold | 18, at 440-840ms | 4, at 430-610ms |
+| Skipped-frame events | 16 | 3 |
+| Processing 5,028 results (Extensions / Contacts) | About 430ms / 810ms | Unchanged |
 
 ### Already ruled out on this device
 
@@ -158,7 +204,7 @@ The phone address book import (`ContactLoader.parseFriends`) checks every contac
 1. Fix the theme re-application (finding 1). Small change, biggest effect on list speed.
 2. Fix the avatar model leak (finding 2). Contained change, addresses the memory growth and the likely crash.
 3. Fix the double row rebuild and the per-result native calls (finding 5).
-4. Decide how to keep external numbers out of presence subscriptions (finding 4).
+4. External numbers in presence subscriptions (finding 4): deferred after measuring the cost. The app-only improvements listed there are cheap if wanted.
 5. Look at first-sync options (finding 3).
 
 After each change, re-run the tab-switch test below and compare against the figures in this document.
