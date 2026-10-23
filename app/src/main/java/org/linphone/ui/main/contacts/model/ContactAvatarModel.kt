@@ -23,7 +23,6 @@ import android.net.Uri
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.MutableLiveData
 import org.linphone.LinphoneApplication.Companion.coreContext
-import org.linphone.R
 import org.linphone.contacts.AbstractAvatarModel
 import org.linphone.contacts.getNativeContactPictureUri
 import org.linphone.core.Address
@@ -35,7 +34,6 @@ import org.linphone.core.SecurityLevel
 import org.linphone.core.UserPresence
 import org.linphone.core.tools.Log
 import org.linphone.utils.AppUtils
-import org.linphone.utils.TimestampUtils
 import androidx.core.net.toUri
 
 class ContactAvatarModel
@@ -58,9 +56,8 @@ class ContactAvatarModel
 
     val isFavourite = MutableLiveData<Boolean>()
 
-    val lastPresenceInfo = MutableLiveData<String>()
-
-    // Row presence display (status label + custom note), hidden when Offline
+    // Presence display (status label + custom note) for list rows and the details screens,
+    // hidden when Offline
     val presenceStatusLabel = MutableLiveData<String>()
 
     val presenceVisible = MutableLiveData<Boolean>()
@@ -226,57 +223,5 @@ class ContactAvatarModel
         presenceStatusLabel.postValue(
             if (visible) AppUtils.getString(userStatus.labelRes()) else ""
         )
-
-        val presenceString = when (presence) {
-            ConsolidatedPresence.Online -> {
-                AppUtils.getString(R.string.contact_presence_status_online)
-            }
-            ConsolidatedPresence.Busy -> {
-                val timestamp = friend.presenceModel?.latestActivityTimestamp ?: -1L
-                if (timestamp != -1L) {
-                    when {
-                        TimestampUtils.isToday(timestamp) -> {
-                            val time = TimestampUtils.timeToString(
-                                timestamp,
-                                timestampInSecs = true
-                            )
-                            AppUtils.getFormattedString(
-                                R.string.contact_presence_status_was_online_today_at,
-                                time
-                            )
-                        }
-                        TimestampUtils.isYesterday(timestamp) -> {
-                            val time = TimestampUtils.timeToString(
-                                timestamp,
-                                timestampInSecs = true
-                            )
-                            AppUtils.getFormattedString(
-                                R.string.contact_presence_status_was_online_yesterday_at,
-                                time
-                            )
-                        }
-                        else -> {
-                            val date = TimestampUtils.toString(
-                                timestamp,
-                                onlyDate = true,
-                                shortDate = false,
-                                hideYear = true
-                            )
-                            AppUtils.getFormattedString(
-                                R.string.contact_presence_status_was_online_on,
-                                date
-                            )
-                        }
-                    }
-                } else {
-                    AppUtils.getString(R.string.contact_presence_status_away)
-                }
-            }
-            ConsolidatedPresence.DoNotDisturb -> {
-                AppUtils.getString(R.string.contact_presence_status_do_not_disturb)
-            }
-            else -> ""
-        }
-        lastPresenceInfo.postValue(presenceString)
     }
 }

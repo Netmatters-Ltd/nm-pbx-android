@@ -2,7 +2,7 @@
 
 Investigation date: 23 October 2026. App version 6.3.009 (release build in the morning, then a debuggable build installed at 09:49).
 
-We were looking into slow loading of the Extensions and Contacts lists when there are a large number of contacts, plus a full crash seen once on a low-spec tablet during first-time use. This document records what we measured and what we think should change. No code changes had been made at the time of writing.
+We were looking into slow loading of the Extensions and Contacts lists when there are a large number of contacts, plus a full crash seen once on a low-spec tablet during first-time use. This document records what we measured and what we think should change. Fixes made since are recorded under each finding.
 
 ## Summary
 
@@ -10,9 +10,10 @@ We were looking into slow loading of the Extensions and Contacts lists when ther
 |---|---|---|---|
 | 1 | `GenericActivity.getTheme()` re-applies the theme on every call | Main cause of slow list layout, and it gets worse the longer the app runs | Fixed |
 | 2 | Extension avatar models leak on every list rebuild, each holding its base64 photo | Memory grows about 1.5MB per Extensions visit on the test server; most likely cause of the crash | Fixed |
-| 3 | First CardDAV sync of about 5,000 vCards takes 2.5 minutes | Lists are empty until it completes | Mostly inside the SDK |
-| 4 | Presence is subscribed for about 3,500 external phone numbers | About 0.5s of background CPU and 48KB of data per re-subscription, a few times a day | Deferred; cost measured and judged not worth an SDK build now |
+| 3 | First CardDAV sync of about 5,000 vCards takes 2.5 minutes | Lists looked empty or broken until it completed; the core thread is blocked for about 100s | "Fetching" state added; the rest is in the SDK and the CardDAV server |
+| 4 | Presence is subscribed for about 3,500 external phone numbers | About 0.5s of background CPU and 48KB of data per re-subscription, a few times a day | SDK patch deferred; redundant re-subscription after each sync removed |
 | 5 | Rows rebuilt twice per load; per-result native calls when processing search results | Smaller CPU costs on main and core threads | Row rebuild fixed; result processing investigated, no simple fix |
+| 6 | Every cold start spends 25s loading the stored contacts | Core thread blocked for 25s on each cold start: no account, lists or calls until it finishes | Inside the SDK; needs a decision |
 
 The crash itself was not reproduced. The test tablet had no record of an app crash, ANR or native crash.
 
@@ -21,7 +22,7 @@ The crash itself was not reproduced. The test tablet had no record of an app cra
 - Device: Oukitel RT1 tablet, Android 11, 1200x1920, about 4GB RAM, app heap limit 256MB.
 - Account: extension 5 on `nm-test.nmpbx.uk`.
 - CardDAV address book: 5,028 vCards, made up of about 5,000 external contacts and 23 extensions. The extensions have inline base64 JPEG photos (`PHOTO;VALUE=URI:data:image/jpeg;base64,...`).
-- READ_CONTACTS denied, so the phone's own address book is not imported. Everything comes from CardDAV.
+- READ_CONTACTS denied, so the phone's own address book is not imported. Everything comes from CardDAV. (The first-sync runs in finding 3 granted it, but the tablet has no contacts of its own.)
 
 ## Findings
 
@@ -112,25 +113,59 @@ Separately, consider not keeping the full base64 photo string in each model.
 
 ### 3. First CardDAV sync takes 2.5 minutes
 
-Timeline from `files/linphone1.log` and `files/linphone2.log` after first-time provisioning:
+Measured with scripted first-time provisioning on the test tablet (app data cleared, provisioning URL entered, timed from the SDK's sync start to sync success). Each run downloads and stores all 5,028 vCards.
 
-| Phase | Time | Duration |
+| Run | Sync start to first contact created | Creating and storing all contacts | Total |
+|---|---|---|---|
+| Baseline (debug build, MESSAGE logging to file and logcat) | 41s | 103s | 145s |
+| Baseline, repeated | 39s | 101s | 139s |
+| SDK log level set to WARNING | 37s | 97s | 134s |
+| Database writes failing (see below) | 40s | 60s | 100s |
+
+**After the portal update (23 October, afternoon).** The portal was changed to check credentials before parsing the request, and to cache results. Three full first-time syncs on the tablet:
+
+| Run | Sync start to first contact created | Creating and storing all contacts | Total |
+|---|---|---|---|
+| 1 | 23.2s | 106.0s | 129.2s |
+| 2 | 22.1s | 104.0s | 126.1s |
+| 3 | 25.3s | 107.2s | 132.5s |
+
+- The unauthenticated multiget now gets its `401` in about 0.4s (previously 13-18s). Timed from a desktop, it's 0.27s for all 5,028 hrefs, against 17s before.
+- The authenticated multiget still takes 15-17s before the response starts on the tablet, the same as before. Timed from a desktop with credentials, three requests in a row took 30s, 18s and 16s, for a 5.5MB response. So caching doesn't yet make repeat requests noticeably faster, and this is now the largest part of the network phase.
+- 5,000 of the 5,028 vCards in the response still share the eTag `cb0cb5a3...`.
+- Processing on the device is unchanged, as expected.
+
+Overall, a first sync now takes about 2 minutes 10 seconds, against 2 minutes 20-25 seconds before.
+
+**Where the time goes.** The two phases have different causes. The figures below are from before the portal update.
+
+*Before the first contact (about 40s), mostly the CardDAV server:*
+
+- Listing the address book takes about 4s, including a 1MB response listing 5,028 eTags.
+- The SDK then sends one `addressbook-multiget` REPORT naming all 5,028 vCards (about 460KB). Like every request the SDK makes, it is first sent without credentials. The portal took 18s to answer with `401`, and then another 18s to answer the authenticated retry.
+- Timing unauthenticated requests from a desktop shows the `401` delay grows with the request body: 0.2s for a small PROPFIND, 1.5s for 500 hrefs, 6.7s for 2,500 and 17s for all 5,028. So the portal parses the whole request before checking credentials, and that parsing gets slower per item as the list grows. The authenticated response probably pays the same parsing cost.
+
+*Creating and storing contacts (about 100s), inside the SDK on the core thread:*
+
+| Part | Approximate cost | Evidence |
 |---|---|---|
-| Provisioning applied, sync started | 09:50:43 | |
-| List the address book | 09:50:43 to 09:50:48 | 5s |
-| Download 5,028 vCards | 09:50:48 to 09:51:28 | 40s |
-| Parse them | 09:51:28 to 09:51:29 | 1s |
-| Create each friend and insert it into the database | 09:51:30 to 09:53:12 | 102s, about 20ms per contact |
-| Sync reported successful | 09:53:12 | |
+| Matching each new contact against the existing list | About 37s | For every downloaded vCard, `CardDAVContext::vcardsPulled` scans every contact already in the list, comparing vCard UIDs (fetched and copied as strings on each comparison). The gap between the SDK's "Downloaded vCard" and "Contact created" log lines grows steadily from 1.5ms to 13ms per contact across the sync. Upstream master has the same code. |
+| Database inserts | About 40s | Each contact is stored in its own transaction (`MainDb::insertFriend`), with SQLite's default rollback journal, so every contact costs several flash writes and syncs (about 11ms each on this tablet). A run where the database could not be written finished this phase in 60s against 101s. |
+| Logging | About 5s | The SDK writes 6 lines per contact. Setting the log level to WARNING saved 4-6s (about 5%). |
+| vCard parsing, friend creation and the rest | About 20s | Includes about 4.8s parsing the 16 vCards with inline photos (2.7MB between them, the largest 325KB). |
 
-The core thread used 88 seconds of CPU in the first four minutes. The slow phase is inside the linphone SDK (`liblinphone` 5.5.16), which creates and stores friends one at a time. The lists stay empty until the sync completes.
+The core thread is fully occupied for the whole of this phase. Nothing else that needs it runs, including SIP traffic and anything the UI asks of the SDK. That is why the lists can't even start loading until the sync ends.
 
-The log files reached 20MB in the first 8 minutes, as the SDK logs at MESSAGE level including full SIP bodies. We have not measured how much of the core thread's time that costs.
+**What we tried that did not work.** Switching `linphone.db` to WAL journal mode before the SDK opens it (WAL mode is stored in the file, so it can be set from the app). The SDK's SQLite could not open the database afterwards ("unable to open database file"), so nothing was stored at all. The change was reverted. It did give the measurement of the insert cost above.
 
-**Options:**
-- Check whether a newer SDK version batches these inserts.
-- Show a "syncing contacts" state so the lists don't look empty or broken during first sync.
-- Consider a lower SDK log level in release builds, after measuring the effect.
+**Done in the app:** the Extensions and Contacts lists now show a spinner with "Fetching extensions…" or "Fetching contacts…" while a CardDAV sync is running and the list has nothing to show. `ContactsManager` exposes `cardDavSyncInProgress` from the SDK's sync status, and `ContactsListViewModel.fetchingFromServer` combines it with the list being empty and not filtered. The "No contact for the moment…" state is now only shown once a load has finished, so it no longer flashes up between the sync ending and the list appearing. `ContactsManager` also logs how long each sync took.
+
+**Options that remain:**
+
+- **CardDAV server (quickest win):** check credentials before parsing a REPORT body, which would save about 18s, and look at why the multiget takes 18s to process. Also check the eTags: 5,000 of the 5,028 vCards have the same eTag (`cb0cb5a3...`), so later syncs probably won't notice when those contacts change.
+- **SDK patch:** replace the UID scan with a lookup table (about 37s, and more with larger address books), and store the downloaded contacts in a single transaction (most of about 40s). This fits with the patched SDK build discussed in finding 4.
+- **Fewer or smaller vCards:** everything above scales with the number of contacts synced, and the inline photos add parse time and memory. See finding 6.
+- **Log level:** lowering it in release builds would save about 5% here. It would also make support logs much less useful, so we don't think it's worth it for this alone.
 
 ### 4. Presence subscriptions include external phone numbers
 
@@ -177,8 +212,18 @@ The numbers only go to our own presence server, and they come from our own CardD
 
 **Cheaper app-only improvements** that would recover part of the waste without an SDK build:
 
-- Only toggle subscriptions after a CardDAV sync when it is needed (the first sync after provisioning, when the list started empty, or when the list has actually changed). This removes one of the two start-up exchanges and the rejected reply.
+- Only toggle subscriptions after a CardDAV sync when it is needed (done, see below).
 - Reduce SDK log verbosity in release builds (see also finding 3). Not yet measured.
+
+**Done in the app:** `ContactsManager` now records which CardDAV lists had a contact created, updated or deleted during a sync, and only toggles subscriptions after a successful sync of one of those. This covers the first sync after provisioning, as every contact is created then. Checked on the test tablet:
+
+| Cold start | Sync | Result |
+|---|---|---|
+| Address book unchanged | 0.6s | No refresh. One RLS SUBSCRIBE for the whole start, answered by a full-state NOTIFY, then routine partial NOTIFYs |
+| One contact's stored eTag and the list's ctag altered in `linphone.db`, so the sync downloads it again | 6.2s | Refresh sent, as before |
+| Next start after that | 0.6s | No refresh |
+
+After a force-stop, the server still sends one NOTIFY for the previous process's subscription, which the app rejects with `481`. That's expected and unrelated to this change.
 
 ### 5. Smaller costs
 
@@ -195,6 +240,27 @@ The numbers only go to our own presence server, and they come from our own CardD
 | Skipped-frame events | 16 | 3 |
 | Processing 5,028 results (Extensions / Contacts) | About 430ms / 810ms | Unchanged |
 
+### 6. Every cold start spends 25 seconds loading stored contacts
+
+When the app process starts, the SDK loads every stored friend from `linphone.db` before the Core finishes starting. On the test tablet the SDK logs `Duration of [Get friend lists.]: 25482ms` (25.0s and 24.9s on repeat runs). Until then the core thread does nothing else: the top bar has no account name, the lists show a spinner, and the SDK can't register or handle calls. We haven't tested it, but an incoming call that wakes the app from a push notification would probably wait for this as well.
+
+A CPU profile of a cold start shows most of the core thread's time in the SDK's grammar-based vCard parser (`belr` and `belcard`). `MainDb::getFriends` parses every stored vCard again on each start. That's about 4ms per contact, even though the median vCard is 196 bytes.
+
+To measure the photos' share, we stripped the 16 `PHOTO` properties from a copy of the database on the device:
+
+| Database | Get friend lists |
+|---|---|
+| As synced (3.7MB of vCards, 2.7MB of it inline photos) | 25.0s, 24.9s |
+| Photos removed | 20.0s, 19.9s |
+
+So inline photos cost about 5s per cold start, and the remaining 20s is roughly proportional to the number of contacts.
+
+**Options:**
+
+- **Fewer contacts in the synced address book.** This is the biggest lever. The 5,000 external contacts cost about 20s per cold start and most of the first sync. The SDK can also search a CardDAV server on demand (Magic search's remote CardDAV source) instead of holding a full copy. That would need either a separate address book for external contacts, or a server-side search endpoint. We previously ruled out changing how address books are served, but these figures may be worth weighing against that.
+- **Serve photos by URL rather than inline.** This saves about 5s per cold start, about 5s on first sync, and the 67KB string each avatar model holds (finding 2). The app would need to load the photo URL, which may need authentication.
+- **SDK changes** to parse vCards lazily or cache what the parsed vCard provides. This is a much bigger patch than the ones in findings 3 and 4.
+
 ### Already ruled out on this device
 
 The phone address book import (`ContactLoader.parseFriends`) checks every contact's photo with `openAssetFileDescriptor` and compares vCard dumps for each contact. That could be slow with a large phone address book, but it did not run in these tests because READ_CONTACTS was denied.
@@ -204,8 +270,9 @@ The phone address book import (`ContactLoader.parseFriends`) checks every contac
 1. Fix the theme re-application (finding 1). Small change, biggest effect on list speed.
 2. Fix the avatar model leak (finding 2). Contained change, addresses the memory growth and the likely crash.
 3. Fix the double row rebuild and the per-result native calls (finding 5).
-4. External numbers in presence subscriptions (finding 4): deferred after measuring the cost. The app-only improvements listed there are cheap if wanted.
-5. Look at first-sync options (finding 3).
+4. External numbers in presence subscriptions (finding 4): SDK patch deferred after measuring the cost. The redundant re-subscription after each sync has been removed.
+5. First sync (finding 3): "Fetching" state done. The server-side fixes (authentication before parsing, multiget speed, eTags) are the cheapest next step.
+6. Cold start (finding 6): needs a decision on address book size and photos. Both findings 3 and 6 strengthen the case for a patched SDK build.
 
 After each change, re-run the tab-switch test below and compare against the figures in this document.
 
@@ -250,6 +317,23 @@ hprof-conv -z nmpbx.hprof nmpbx-conv.hprof
 ```
 
 The converted file opens in Android Studio's profiler or Eclipse MAT. Look at instance counts for `ContactAvatarModel` and `ContactAvatarModel$friendListener$1`, and the GC roots holding the listeners.
+
+First-sync timing: clear the app's data, grant permissions, enter the provisioning URL on the Login screen, and read the sync duration from logcat:
+
+```sh
+adb shell pm clear com.netmatters.nmpbx
+for p in CAMERA RECORD_AUDIO READ_CONTACTS; do adb shell pm grant com.netmatters.nmpbx android.permission.$p; done
+# launch, tap OK on the permissions screen, enter the provisioning URL and tap Apply
+adb logcat | grep "synced in"
+```
+
+Cold-start friend loading:
+
+```sh
+adb shell am force-stop com.netmatters.nmpbx
+adb shell monkey -p com.netmatters.nmpbx -c android.intent.category.LAUNCHER 1
+adb logcat | grep "Get friend lists"
+```
 
 App logs, including the SDK's, are written to the app's files directory and can be read on a debuggable build:
 
