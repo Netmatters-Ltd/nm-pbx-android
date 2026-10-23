@@ -31,6 +31,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.annotation.DrawableRes
 import androidx.annotation.MainThread
+import androidx.annotation.StyleRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
@@ -55,19 +56,27 @@ open class GenericActivity : AppCompatActivity() {
 
     private var mainColor: String = "orange"
 
-    override fun getTheme(): Resources.Theme {
+    // Overlay the main color whenever the framework (re)applies the activity's theme, rather than
+    // in getTheme(). getTheme() is called for nearly every view inflated or styled, and each
+    // applyStyle() call grows the theme's key and defeats Android's themed resource caches, which
+    // made inflation slower the longer the app ran.
+    override fun onApplyThemeResource(theme: Resources.Theme, resid: Int, first: Boolean) {
+        super.onApplyThemeResource(theme, resid, first)
         mainColor = corePreferences.themeMainColor
-        val theme = super.theme
-        when (mainColor) {
-            "yellow" -> theme.applyStyle(R.style.Theme_LinphoneYellow, true)
-            "green" -> theme.applyStyle(R.style.Theme_LinphoneGreen, true)
-            "blue" -> theme.applyStyle(R.style.Theme_LinphoneBlue, true)
-            "red" -> theme.applyStyle(R.style.Theme_LinphoneRed, true)
-            "pink" -> theme.applyStyle(R.style.Theme_LinphonePink, true)
-            "purple" -> theme.applyStyle(R.style.Theme_LinphonePurple, true)
-            else -> theme.applyStyle(R.style.Theme_Linphone, true)
+        theme.applyStyle(getMainColorStyle(mainColor), true)
+    }
+
+    @StyleRes
+    protected open fun getMainColorStyle(color: String): Int {
+        return when (color) {
+            "yellow" -> R.style.Theme_LinphoneYellow
+            "green" -> R.style.Theme_LinphoneGreen
+            "blue" -> R.style.Theme_LinphoneBlue
+            "red" -> R.style.Theme_LinphoneRed
+            "pink" -> R.style.Theme_LinphonePink
+            "purple" -> R.style.Theme_LinphonePurple
+            else -> R.style.Theme_Linphone
         }
-        return theme
     }
 
     @SuppressLint("SourceLockedOrientationActivity")

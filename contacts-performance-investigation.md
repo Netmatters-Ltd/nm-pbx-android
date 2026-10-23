@@ -8,7 +8,7 @@ We were looking into slow loading of the Extensions and Contacts lists when ther
 
 | # | Finding | Impact | Status |
 |---|---|---|---|
-| 1 | `GenericActivity.getTheme()` re-applies the theme on every call | Main cause of slow list layout, and it gets worse the longer the app runs | Not fixed |
+| 1 | `GenericActivity.getTheme()` re-applies the theme on every call | Main cause of slow list layout, and it gets worse the longer the app runs | Fixed |
 | 2 | Extension avatar models leak on every list rebuild, each holding its base64 photo | Memory grows about 1.5MB per Extensions visit on the test server; most likely cause of the crash | Not fixed |
 | 3 | First CardDAV sync of about 5,000 vCards takes 2.5 minutes | Lists are empty until it completes | Mostly inside the SDK |
 | 4 | Presence is subscribed for about 3,500 external phone numbers | Privacy concern and extra presence load | Needs a decision |
@@ -50,7 +50,17 @@ Layout times for the contacts RecyclerView, which shows around 13 rows:
 
 Some of the difference is the debug build running interpreted code, but the growth over time is consistent with this finding. Frame stats from the release session showed 54% of all frames as janky.
 
-**Suggested fix:** apply the colour style once per theme, for example by remembering which colour was applied and only calling `applyStyle` when it changes, or by applying it in `onCreate` before `super.onCreate`.
+**Fix:** the colour style is now applied in `onApplyThemeResource()`, which the framework calls when it (re)applies the activity's base theme, instead of in `getTheme()`. `CallActivity` supplies its in-call styles through `getMainColorStyle()`; each in-call style inherits from the matching colour style, so applying it alone gives the same result as before. Because the colour is now only read when the theme is created, changing it in Settings saves the preference first and then recreates the activity through `recreateActivityEvent`, rather than recreating straight away.
+
+**Result**, same 10-round tab-switch test on the debug build:
+
+| | Before | After |
+|---|---|---|
+| Layout passes per switch | 0.8s and 1.3s at the start, rising to 1.05s and 1.7s by round 10 | 0.4-0.6s and 0.5-0.9s, flat across all 10 rounds |
+| `Resources$ThemeKey` objects in the heap | 8,825 | 13 |
+| Int arrays held by theme keys | 10.7MB | Negligible |
+
+Some layout passes now fall under the device's 400ms warning threshold and are no longer logged at all. Memory still grows during the test because of finding 2.
 
 ### 2. Extension avatar models leak, including their photos
 
