@@ -59,6 +59,10 @@
             app:layout_constraintTop_toTopOf="@id/calls"
             app:layout_constraintEnd_toEndOf="@id/calls"/>
 
+        <!-- Conversations are always hidden. Binding visibility to viewModel.hideConversations
+             left the button briefly visible on start-up until the value was posted. Re-enabling
+             conversations will need code changes anyway, so restore the binding then:
+             android:visibility="@{viewModel.hideConversations ? View.GONE : View.VISIBLE}" -->
         <androidx.appcompat.widget.AppCompatTextView
             style="@style/bottom_nav_bar_label_style"
             android:id="@+id/conversations"
@@ -69,20 +73,22 @@
             android:drawablePadding="10dp"
             android:drawableTint="@{viewModel.conversationsSelected ? @color/main1_500 : @color/main2_600, default=@color/main2_600}"
             android:text="@string/bottom_navigation_conversations_label"
-            android:visibility="@{viewModel.hideConversations ? View.GONE : View.VISIBLE}"
+            android:visibility="gone"
             textFont="@{viewModel.conversationsSelected ? NotoSansFont.NotoSansBold : NotoSansFont.NotoSansRegular}"
             app:layout_constraintBottom_toTopOf="@id/meetings"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/calls" />
 
+        <!-- Hidden along with the conversations button above. Restore the binding with it:
+             android:visibility="@{viewModel.unreadMessages > 0 &amp;&amp; !viewModel.hideConversations ? View.VISIBLE : View.GONE}" -->
         <androidx.appcompat.widget.AppCompatTextView
             style="@style/unread_count_text_style"
             android:id="@+id/unread_messages"
             android:layout_width="@dimen/unread_count_indicator_size"
             android:layout_height="@dimen/unread_count_indicator_size"
             android:text="@{String.valueOf(viewModel.unreadMessages), default=`100`}"
-            android:visibility="@{viewModel.unreadMessages > 0 &amp;&amp; !viewModel.hideConversations ? View.VISIBLE : View.GONE}"
+            android:visibility="gone"
             app:layout_constraintTop_toTopOf="@id/conversations"
             app:layout_constraintEnd_toEndOf="@id/conversations"/>
 
