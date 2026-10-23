@@ -451,6 +451,8 @@
     <!-- Contacts -->
     <string name="contacts_list_empty">No contact for the moment…</string>
     <string name="contacts_list_sip_empty">No SIP contact for the moment…</string>
+    <string name="contacts_list_fetching">Fetching contacts…</string>
+    <string name="extensions_list_fetching">Fetching extensions…</string>
     <string name="contacts_change_filter_label">Change filter</string>
     <string name="contacts_list_favourites_title">Favourites</string>
     <string name="contacts_list_all_contacts_title">All contacts</string>

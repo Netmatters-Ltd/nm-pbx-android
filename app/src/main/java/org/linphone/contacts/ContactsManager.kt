@@ -86,6 +86,16 @@ class ContactsManager
     // Used by the contacts list to stop the pull-to-refresh spinner once a manual sync completes.
     val cardDavSyncResultEvent = MutableLiveData<Event<Boolean>>()
 
+    // True while a CardDAV friend list is being synchronised. The first sync of a large address
+    // book can take minutes, so the contacts lists use this to say they're still fetching.
+    val cardDavSyncInProgress = MutableLiveData(false)
+
+    private var cardDavSyncStartTime = 0L
+
+    // CardDAV friend lists that had a contact created, updated or deleted during their current sync.
+    // Only these need their presence subscriptions refreshing once the sync succeeds.
+    private val friendListsChangedDuringSync = hashSetOf<FriendList>()
+
     private val listeners = arrayListOf<ContactsListener>()
 
     private val knownContactsAvatarsMap = hashMapOf<String, ContactAvatarModel>()
@@ -233,6 +243,7 @@ class ContactsManager
 
         @WorkerThread
         override fun onContactCreated(friendList: FriendList, linphoneFriend: Friend) {
+            friendListsChangedDuringSync.add(friendList)
             for (address in linphoneFriend.addresses) {
                 removeUnknownAddressFromMap(address)
             }
@@ -240,6 +251,7 @@ class ContactsManager
 
         @WorkerThread
         override fun onContactDeleted(friendList: FriendList, linphoneFriend: Friend) {
+            friendListsChangedDuringSync.add(friendList)
             for (address in linphoneFriend.addresses) {
                 removeKnownAddressFromMap(address)
             }
@@ -251,6 +263,7 @@ class ContactsManager
             newFriend: Friend,
             oldFriend: Friend
         ) {
+            friendListsChangedDuringSync.add(friendList)
             for (address in oldFriend.addresses) {
                 removeKnownAddressFromMap(address)
             }
@@ -267,17 +280,33 @@ class ContactsManager
         ) {
             Log.i("$TAG Friend list [${friendList.displayName}] sync status changed to [$status]")
             when (status) {
+                FriendList.SyncStatus.Started -> {
+                    cardDavSyncStartTime = System.currentTimeMillis()
+                    cardDavSyncInProgress.postValue(true)
+                    friendListsChangedDuringSync.remove(friendList)
+                }
                 FriendList.SyncStatus.Successful -> {
+                    Log.i(
+                        "$TAG Friend list [${friendList.displayName}] synced in [${System.currentTimeMillis() - cardDavSyncStartTime}] ms"
+                    )
+                    cardDavSyncInProgress.postValue(false)
                     notifyContactsListChanged()
                     cardDavSyncResultEvent.postValue(Event(true))
 
-                    // The list was empty when subscriptions were first enabled at startup, so the
-                    // SDK's aggregated RLS SUBSCRIBE went out with no resources. Now that the
-                    // CardDAV sync has populated it, force a fresh SUBSCRIBE so presence NOTIFYs
-                    // start arriving without needing a background/foreground round-trip. Toggle
-                    // rather than updateSubscriptions() (see AccountModel.setAsDefault):
+                    // If the sync changed the list (on first sync it was empty when subscriptions
+                    // were enabled at startup, so the SDK's aggregated RLS SUBSCRIBE went out with
+                    // no resources), force a fresh SUBSCRIBE so presence NOTIFYs cover the new
+                    // contents without needing a background/foreground round-trip. Toggle rather
+                    // than updateSubscriptions() (see AccountModel.setAsDefault):
                     // updateSubscriptions() is a no-op unless a friend object changed.
-                    if (friendList.isSubscriptionsEnabled) {
+                    // An unchanged list is skipped: the resource list is large with a big address
+                    // book, and the SUBSCRIBE sent at startup already covers it.
+                    val changed = friendListsChangedDuringSync.remove(friendList)
+                    if (!changed) {
+                        Log.i(
+                            "$TAG CardDAV list [${friendList.displayName}] unchanged by sync, keeping presence subscriptions"
+                        )
+                    } else if (friendList.isSubscriptionsEnabled) {
                         Log.i(
                             "$TAG CardDAV list [${friendList.displayName}] synced, refreshing presence subscriptions"
                         )
@@ -287,7 +316,9 @@ class ContactsManager
                 }
                 FriendList.SyncStatus.Failure -> {
                     Log.e("$TAG Friend list [${friendList.displayName}] sync failed: $message")
+                    cardDavSyncInProgress.postValue(false)
                     cardDavSyncResultEvent.postValue(Event(false))
+                    friendListsChangedDuringSync.remove(friendList)
                 }
                 else -> {}
             }

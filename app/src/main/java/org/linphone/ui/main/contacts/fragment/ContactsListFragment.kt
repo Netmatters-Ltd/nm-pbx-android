@@ -239,6 +239,9 @@ class ContactsListFragment : AbstractMainFragment() {
                 R.string.bottom_navigation_contacts_label
             }
         )
+        binding.fetchingFromServerLabel.text = getString(
+            if (extensionsMode) R.string.extensions_list_fetching else R.string.contacts_list_fetching
+        )
         setViewModel(listViewModel)
         initViews(
             binding.slidingPaneLayout,

@@ -21,6 +21,7 @@ package org.linphone.ui.main.contacts.viewmodel
 
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
@@ -74,6 +75,10 @@ class ContactsListViewModel
     // When true, this list shows only internal PBX extensions; when false, only external contacts.
     // Set by the fragment before the list is built, based on the displayed destination.
     var extensionsMode: Boolean = false
+
+    // True while the CardDAV address book is still being fetched and there is nothing to show yet,
+    // so a first start says it's fetching rather than looking like there are no contacts
+    val fetchingFromServer = MediatorLiveData<Boolean>()
 
     // Drives the pull-to-refresh spinner while a manual CardDAV sync is running.
     val cardDavRefreshing = MutableLiveData<Boolean>()
@@ -145,6 +150,14 @@ class ContactsListViewModel
         showFilter.value = !corePreferences.hidePhoneNumbers
         cardDavRefreshing.value = false
         coreContext.contactsManager.cardDavSyncResultEvent.observeForever(cardDavSyncObserver)
+
+        val updateFetchingFromServer = {
+            fetchingFromServer.value = coreContext.contactsManager.cardDavSyncInProgress.value == true &&
+                contactsList.value.isNullOrEmpty() && isListFiltered.value != true
+        }
+        fetchingFromServer.addSource(coreContext.contactsManager.cardDavSyncInProgress) { updateFetchingFromServer() }
+        fetchingFromServer.addSource(contactsList) { updateFetchingFromServer() }
+        fetchingFromServer.addSource(isListFiltered) { updateFetchingFromServer() }
 
         coreContext.postOnCoreThread { core ->
             domainFilter = corePreferences.contactsFilter

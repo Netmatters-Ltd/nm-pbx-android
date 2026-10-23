@@ -27,7 +27,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:constraint_referenced_ids="no_contacts_image, no_contacts_label"
-                    android:visibility="@{viewModel.contactsList.empty ? View.VISIBLE : View.GONE}" />
+                    android:visibility="@{viewModel.contactsList.empty &amp;&amp; !viewModel.fetchInProgress &amp;&amp; !viewModel.fetchingFromServer ? View.VISIBLE : View.GONE}" />
 
                 <include
                     android:id="@+id/bottom_nav_bar"
@@ -139,12 +139,23 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:indeterminate="true"
-                    android:visibility="@{viewModel.fetchInProgress || viewModel.searchInProgress ? View.VISIBLE : View.GONE}"
+                    android:visibility="@{viewModel.fetchInProgress || viewModel.searchInProgress || viewModel.fetchingFromServer ? View.VISIBLE : View.GONE}"
                     app:indicatorColor="?attr/color_main1_500"
                     app:layout_constraintStart_toEndOf="@id/bottom_nav_bar"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    style="@style/section_header_style"
+                    android:id="@+id/fetching_from_server_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:visibility="@{viewModel.fetchingFromServer ? View.VISIBLE : View.GONE, default=gone}"
+                    app:layout_constraintStart_toEndOf="@id/bottom_nav_bar"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/fetch_in_progress" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
