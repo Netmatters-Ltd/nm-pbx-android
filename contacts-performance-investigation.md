@@ -9,7 +9,7 @@ We were looking into slow loading of the Extensions and Contacts lists when ther
 | # | Finding | Impact | Status |
 |---|---|---|---|
 | 1 | `GenericActivity.getTheme()` re-applies the theme on every call | Main cause of slow list layout, and it gets worse the longer the app runs | Fixed |
-| 2 | Extension avatar models leak on every list rebuild, each holding its base64 photo | Memory grows about 1.5MB per Extensions visit on the test server; most likely cause of the crash | Not fixed |
+| 2 | Extension avatar models leak on every list rebuild, each holding its base64 photo | Memory grows about 1.5MB per Extensions visit on the test server; most likely cause of the crash | Fixed |
 | 3 | First CardDAV sync of about 5,000 vCards takes 2.5 minutes | Lists are empty until it completes | Mostly inside the SDK |
 | 4 | Presence is subscribed for about 3,500 external phone numbers | Privacy concern and extra presence load | Needs a decision |
 | 5 | Rows rebuilt twice per load; repeated native calls in sorting | Smaller CPU costs on main and core threads | Not fixed |
@@ -89,7 +89,26 @@ Leaked models also still receive presence updates. Every incoming NOTIFY recalcu
 
 The cost scales with the number of extensions that have photos and with how often the list is rebuilt. Rebuilds happen on every tab switch (each switch creates a new fragment and view model), after CardDAV syncs and when new SIP addresses are discovered. On a PBX with a few hundred extensions this would use memory far faster, which is the most likely explanation for the crash on a lower-spec device.
 
-**Suggested fix:** destroy the previous list's models when a new list is built and in `onCleared()`, or cache and reuse models per friend so listeners are only registered once. Separately, consider not keeping the full base64 photo string in each model.
+**Fix:** `ContactsListViewModel` now keeps track of the friend models it creates for each list (contacts and favourites). When a list is rebuilt, the previous list's models are destroyed, which removes their listeners, and both lists are destroyed in `onCleared()`. Models for results without a friend come from the `ContactsManager` cache and are shared, so those are left alone. This covers any friend with SIP addresses, so external contacts with SIP addresses and photos are handled the same way as extensions.
+
+**Result**, same 10-round tab-switch test on the debug build:
+
+| | Before | After |
+|---|---|---|
+| Live heap after GC over the test | 17MB rising to 52MB | 13-17MB throughout |
+| `ContactAvatarModel` instances after the test | 376 (276 held by the SDK) | 24 (the 23 on screen plus one) |
+| Java and native heap over 5 further rounds | Growing | Flat (about 27MB and 96MB) |
+
+**Contact picker:** `AddressSelectionViewModel` (the picker used for new calls, new conversations, forwarding messages and adding participants) had the same problem on every search. It now tracks every avatar model it creates for the list, including its own address-based and conversation models, destroys the previous list's models when a search completes and destroys the rest in `onCleared()`. The selected-participant chips use models from the `ContactsManager` cache, so they are unaffected.
+
+Result, typing and deleting a letter 20 times in the New call picker (40 searches), with the picker still open:
+
+| | Before | After |
+|---|---|---|
+| `ContactAvatarModel` instances | 721, all held by the SDK | 31, of which 25 live (the rows on screen plus one) |
+| Heap dump size | 98MB | 43MB |
+
+Separately, consider not keeping the full base64 photo string in each model.
 
 ### 3. First CardDAV sync takes 2.5 minutes
 

@@ -73,6 +73,12 @@ abstract class AddressSelectionViewModel
 
     private lateinit var favouritesMagicSearch: MagicSearch
 
+    // Avatar models currently displayed in the list. They are built fresh for every search and
+    // those with an address register a listener on their Friend, which the SDK holds onto, so the
+    // previous list's models must be destroyed once replaced or they are never released.
+    // Only accessed from the Core thread.
+    private val avatarModels = arrayListOf<ContactAvatarModel>()
+
     private val magicSearchListener = object : MagicSearchListenerStub() {
         @WorkerThread
         override fun onSearchResultsReceived(magicSearch: MagicSearch) {
@@ -121,6 +127,9 @@ abstract class AddressSelectionViewModel
         coreContext.postOnCoreThread {
             magicSearch.removeListener(magicSearchListener)
             coreContext.contactsManager.removeListener(contactsListener)
+
+            avatarModels.forEach(ContactAvatarModel::destroy)
+            avatarModels.clear()
         }
         super.onCleared()
     }
@@ -261,8 +270,9 @@ abstract class AddressSelectionViewModel
     private fun processMagicSearchResults(results: Array<SearchResult>) {
         Log.i("$TAG Processing [${results.size}] results")
 
+        val newAvatarModels = arrayListOf<ContactAvatarModel>()
         val conversationsList = if (!skipConversation) {
-            getConversationsList(currentFilter)
+            getConversationsList(currentFilter, newAvatarModels)
         } else {
             arrayListOf()
         }
@@ -286,6 +296,7 @@ abstract class AddressSelectionViewModel
                 val avatarModel = coreContext.contactsManager.getContactAvatarModelForFriend(
                     friend
                 )
+                newAvatarModels.add(avatarModel)
                 model.avatarModel.postValue(avatarModel)
                 favoritesList.add(model)
             } else {
@@ -312,6 +323,7 @@ abstract class AddressSelectionViewModel
                     val avatarModel = coreContext.contactsManager.getContactAvatarModelForFriend(
                         friend
                     )
+                    newAvatarModels.add(avatarModel)
                     model.avatarModel.postValue(avatarModel)
                     contactsList.add(model)
                 } else {
@@ -323,6 +335,7 @@ abstract class AddressSelectionViewModel
                         coreContext.startAudioCall(address)
                     }
                     val avatarModel = getContactAvatarModelForAddress(address)
+                    newAvatarModels.add(avatarModel)
                     model.avatarModel.postValue(avatarModel)
                     suggestionsList.add(model)
                     continue
@@ -338,6 +351,7 @@ abstract class AddressSelectionViewModel
                     coreContext.startAudioCall(address)
                 }
                 val avatarModel = getContactAvatarModelForAddress(address)
+                newAvatarModels.add(avatarModel)
                 model.avatarModel.postValue(avatarModel)
                 suggestionsList.add(model)
             }
@@ -360,6 +374,10 @@ abstract class AddressSelectionViewModel
         list.addAll(contactsList)
         list.addAll(suggestionsList)
 
+        avatarModels.forEach(ContactAvatarModel::destroy)
+        avatarModels.clear()
+        avatarModels.addAll(newAvatarModels)
+
         searchInProgress.postValue(false)
         modelsList.postValue(list)
         isEmpty.postValue(list.isEmpty())
@@ -369,7 +387,10 @@ abstract class AddressSelectionViewModel
     }
 
     @WorkerThread
-    private fun getConversationsList(filter: String): ArrayList<ConversationContactOrSuggestionModel> {
+    private fun getConversationsList(
+        filter: String,
+        newAvatarModels: ArrayList<ContactAvatarModel>
+    ): ArrayList<ConversationContactOrSuggestionModel> {
         val conversationsList = arrayListOf<ConversationContactOrSuggestionModel>()
         for (chatRoom in LinphoneUtils.getDefaultAccount()?.chatRooms.orEmpty()) {
             // Do not list conversations in which we can't send a message
@@ -458,6 +479,7 @@ abstract class AddressSelectionViewModel
                 } else {
                     coreContext.contactsManager.getContactAvatarModelForFriend(friend)
                 }
+                newAvatarModels.add(avatarModel)
                 model.avatarModel.postValue(avatarModel)
                 conversationsList.add(model)
             }

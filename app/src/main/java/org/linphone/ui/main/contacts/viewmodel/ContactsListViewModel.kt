@@ -99,6 +99,13 @@ class ContactsListViewModel
 
     private var firstLoad = true
 
+    // Friend models currently displayed in each list. They are built fresh for every search and
+    // register a listener on their Friend, which the SDK holds onto, so each list's previous models
+    // must be destroyed once replaced or they (and their picture) are never released.
+    // Only accessed from the Core thread.
+    private val contactsModels = arrayListOf<ContactAvatarModel>()
+    private val favouritesModels = arrayListOf<ContactAvatarModel>()
+
     private val magicSearchListener = object : MagicSearchListenerStub() {
         @WorkerThread
         override fun onSearchResultsReceived(magicSearch: MagicSearch) {
@@ -168,6 +175,11 @@ class ContactsListViewModel
             magicSearch.removeListener(magicSearchListener)
             favouritesMagicSearch.removeListener(favouritesMagicSearchListener)
             coreContext.contactsManager.removeListener(contactsListener)
+
+            contactsModels.forEach(ContactAvatarModel::destroy)
+            contactsModels.clear()
+            favouritesModels.forEach(ContactAvatarModel::destroy)
+            favouritesModels.clear()
         }
         super.onCleared()
     }
@@ -341,7 +353,6 @@ class ContactsListViewModel
 
     @WorkerThread
     private fun processMagicSearchResults(results: Array<SearchResult>, favourites: Boolean) {
-        // Do not call destroy() on previous list items as they are cached and will be re-used
         Log.i("$TAG Processing [${results.size}] results, favourites is [$favourites]")
 
         // Keep only the results for the displayed tab before building any avatar model (the costly
@@ -363,6 +374,8 @@ class ContactsListViewModel
         val toDisplay = if (capped) tabResults.take(maxContacts) else tabResults
 
         val list = arrayListOf<ContactAvatarModel>()
+        // Address-only models come from the ContactsManager cache and are shared, so they aren't ours to destroy
+        val friendModels = arrayListOf<ContactAvatarModel>()
         var count = 0
 
         for (result in toDisplay) {
@@ -383,7 +396,9 @@ class ContactsListViewModel
             }
 
             val model = if (friend != null) {
-                coreContext.contactsManager.getContactAvatarModelForFriend(friend)
+                coreContext.contactsManager.getContactAvatarModelForFriend(friend).also {
+                    friendModels.add(it)
+                }
             } else {
                 coreContext.contactsManager.getContactAvatarModelForAddress(result.address)
             }
@@ -400,6 +415,11 @@ class ContactsListViewModel
                 contactsListTruncated.postValue(capped)
             }
         }
+
+        val previousModels = if (favourites) favouritesModels else contactsModels
+        previousModels.forEach(ContactAvatarModel::destroy)
+        previousModels.clear()
+        previousModels.addAll(friendModels)
 
         searchInProgress.postValue(false)
         if (favourites) {
