@@ -71,7 +71,11 @@ abstract class AddressSelectionViewModel
 
     private lateinit var magicSearch: MagicSearch
 
-    private lateinit var favouritesMagicSearch: MagicSearch
+    // Avatar models currently displayed in the list. They are built fresh for every search and
+    // those with an address register a listener on their Friend, which the SDK holds onto, so the
+    // previous list's models must be destroyed once replaced or they are never released.
+    // Only accessed from the Core thread.
+    private val avatarModels = arrayListOf<ContactAvatarModel>()
 
     private val magicSearchListener = object : MagicSearchListenerStub() {
         @WorkerThread
@@ -86,7 +90,6 @@ abstract class AddressSelectionViewModel
         override fun onContactsLoaded() {
             Log.i("$TAG Contacts have been (re)loaded, updating list")
             magicSearch.resetSearchCache()
-            favouritesMagicSearch.resetSearchCache()
 
             applyFilter(
                 currentFilter,
@@ -105,12 +108,10 @@ abstract class AddressSelectionViewModel
         coreContext.postOnCoreThread { core ->
             coreContext.contactsManager.addListener(contactsListener)
             magicSearch = core.createMagicSearch()
-            magicSearch.limitedSearch = true
-            magicSearch.searchLimit = corePreferences.magicSearchResultsLimit
+            // No Magic search limit: it applies before extensions are split from contacts, so it
+            // silently dropped everything after the first results. Contacts are capped ourselves.
+            magicSearch.limitedSearch = false
             magicSearch.addListener(magicSearchListener)
-
-            favouritesMagicSearch = core.createMagicSearch()
-            favouritesMagicSearch.limitedSearch = false
         }
 
         applyFilter(currentFilter)
@@ -121,6 +122,9 @@ abstract class AddressSelectionViewModel
         coreContext.postOnCoreThread {
             magicSearch.removeListener(magicSearchListener)
             coreContext.contactsManager.removeListener(contactsListener)
+
+            avatarModels.forEach(ContactAvatarModel::destroy)
+            avatarModels.clear()
         }
         super.onCleared()
     }
@@ -244,7 +248,10 @@ abstract class AddressSelectionViewModel
         currentFilter = filter
         previousFilter = filter
 
-        val domain = corePreferences.contactsFilter
+        // Always search every friend: a non-empty domain ("*" = SIP-only, or a specific domain)
+        // would drop phone-number-only external contacts (eg. CardDAV) before we ever see them.
+        // Extensions and contacts are split ourselves in processMagicSearchResults().
+        val domain = ""
         Log.i(
             "$TAG Asking Magic search for contacts matching filter [$filter], domain [$domain] and in sources [$sources]"
         )
@@ -261,61 +268,37 @@ abstract class AddressSelectionViewModel
     private fun processMagicSearchResults(results: Array<SearchResult>) {
         Log.i("$TAG Processing [${results.size}] results")
 
+        val newAvatarModels = arrayListOf<ContactAvatarModel>()
         val conversationsList = if (!skipConversation) {
-            getConversationsList(currentFilter)
+            getConversationsList(currentFilter, newAvatarModels)
         } else {
             arrayListOf()
         }
 
         val defaultAccountDomain = LinphoneUtils.getDefaultAccount()?.params?.domain
-        val favoritesList = arrayListOf<ConversationContactOrSuggestionModel>()
-        val domain = corePreferences.contactsFilter
-        // Make a quick synchronous search for favorites (in case of total results exceed magic search limit to prevent missing ones)
-        // TODO FIXME: to improve like it's done in ContactsListViewModel but will require UI changes
-        val favorites = favouritesMagicSearch.getContactsList(currentFilter, domain, MagicSearch.Source.FavoriteFriends.toInt(), MagicSearch.Aggregation.Friend)
-        for (result in favorites) {
-            val address = result.address
-            val friend = result.friend ?: continue
 
-            val found = favoritesList.find { it.friend == friend }
-            if (found != null) continue
-
-            val mainAddress = address ?: LinphoneUtils.getFirstAvailableAddressForFriend(friend)
-            if (mainAddress != null) {
-                val model = ConversationContactOrSuggestionModel(mainAddress, friend = friend)
-                val avatarModel = coreContext.contactsManager.getContactAvatarModelForFriend(
-                    friend
-                )
-                model.avatarModel.postValue(avatarModel)
-                favoritesList.add(model)
-            } else {
-                Log.w("$TAG Found favorite friend [${friend.name}] in search results but no Address could be found, skipping it")
-            }
-        }
-
-        val contactsList = arrayListOf<ConversationContactOrSuggestionModel>()
+        // Split friends into favourites, extensions (internal) and contacts (external) before
+        // building any model (the costly part), so contacts past the cap are never built.
+        // Favourites are picked out of these results rather than through Magic search's
+        // FavoriteFriends source: CardDAV contacts are favourited by the app, the SDK doesn't know.
+        val favouriteResults = arrayListOf<SearchResult>()
+        val extensionResults = arrayListOf<SearchResult>()
+        val contactResults = arrayListOf<SearchResult>()
+        val seenFriends = hashSetOf<Friend>()
         val suggestionsList = arrayListOf<ConversationContactOrSuggestionModel>()
 
         for (result in results) {
             val address = result.address
             val friend = result.friend
             if (friend != null) {
-                // Starred friends are processed separately to prevent missing some due to magic search limit
-                if (friend.starred) continue
+                if (!seenFriends.add(friend)) continue
 
-                val found = contactsList.find { it.friend == friend }
-                if (found != null) continue
-
-                val mainAddress = address ?: LinphoneUtils.getFirstAvailableAddressForFriend(friend)
-                if (mainAddress != null) {
-                    val model = ConversationContactOrSuggestionModel(mainAddress, friend = friend)
-                    val avatarModel = coreContext.contactsManager.getContactAvatarModelForFriend(
-                        friend
-                    )
-                    model.avatarModel.postValue(avatarModel)
-                    contactsList.add(model)
+                if (coreContext.contactsManager.isFavourite(friend)) {
+                    favouriteResults.add(result)
+                } else if (isInternalFriend(friend, defaultAccountDomain.orEmpty())) {
+                    extensionResults.add(result)
                 } else {
-                    Log.w("$TAG Found friend [${friend.name}] in search results but no Address could be found, skipping it")
+                    contactResults.add(result)
                 }
             } else if (address != null) {
                 if (result.sourceFlags == MagicSearch.Source.Request.toInt()) {
@@ -323,6 +306,7 @@ abstract class AddressSelectionViewModel
                         coreContext.startAudioCall(address)
                     }
                     val avatarModel = getContactAvatarModelForAddress(address)
+                    newAvatarModels.add(avatarModel)
                     model.avatarModel.postValue(avatarModel)
                     suggestionsList.add(model)
                     continue
@@ -338,18 +322,44 @@ abstract class AddressSelectionViewModel
                     coreContext.startAudioCall(address)
                 }
                 val avatarModel = getContactAvatarModelForAddress(address)
+                newAvatarModels.add(avatarModel)
                 model.avatarModel.postValue(avatarModel)
                 suggestionsList.add(model)
             }
         }
 
         val collator = Collator.getInstance(Locale.getDefault())
-        favoritesList.sortWith { model1, model2 ->
-            collator.compare(model1.name, model2.name)
+        val byName = Comparator<SearchResult> { result1, result2 ->
+            collator.compare(getResultName(result1), getResultName(result2))
         }
-        contactsList.sortWith { model1, model2 ->
-            collator.compare(model1.name, model2.name)
+        favouriteResults.sortWith(byName)
+        extensionResults.sortWith(byName)
+        contactResults.sortWith(byName)
+
+        // Only contacts are capped, including search results: typing more of the name narrows
+        // them down so any contact can be reached. Extensions are always all listed.
+        val maxContacts = corePreferences.maxContactsDisplayed
+        val capped = maxContacts > 0 && contactResults.size > maxContacts
+        val contactsToDisplay = if (capped) {
+            contactResults.take(maxContacts)
+        } else {
+            contactResults
         }
+
+        // Favourites are never capped
+        val favoritesList = buildFriendModels(favouriteResults, newAvatarModels, isFavourite = true)
+        val extensionsList = buildFriendModels(extensionResults, newAvatarModels, isExtension = true)
+        val contactsList = buildFriendModels(contactsToDisplay, newAvatarModels)
+        if (capped) {
+            contactsList.lastOrNull()?.truncatedMessage = AppUtils.getString(
+                if (currentFilter.isEmpty()) {
+                    R.string.contacts_list_truncated_message
+                } else {
+                    R.string.contacts_list_search_truncated_message
+                }
+            )
+        }
+
         suggestionsList.sortWith { model1, model2 ->
             collator.compare(model1.name, model2.name)
         }
@@ -357,19 +367,69 @@ abstract class AddressSelectionViewModel
         val list = arrayListOf<ConversationContactOrSuggestionModel>()
         list.addAll(conversationsList)
         list.addAll(favoritesList)
+        list.addAll(extensionsList)
         list.addAll(contactsList)
         list.addAll(suggestionsList)
+
+        avatarModels.forEach(ContactAvatarModel::destroy)
+        avatarModels.clear()
+        avatarModels.addAll(newAvatarModels)
 
         searchInProgress.postValue(false)
         modelsList.postValue(list)
         isEmpty.postValue(list.isEmpty())
         Log.i(
-            "$TAG Processed [${results.size}] results: [${conversationsList.size}] conversations, [${favoritesList.size}] favorites, [${contactsList.size}] contacts and [${suggestionsList.size}] suggestions"
+            "$TAG Processed [${results.size}] results: [${conversationsList.size}] conversations, [${favoritesList.size}] favorites, [${extensionsList.size}] extensions, [${contactsList.size}] contacts (from [${contactResults.size}]) and [${suggestionsList.size}] suggestions"
         )
     }
 
     @WorkerThread
-    private fun getConversationsList(filter: String): ArrayList<ConversationContactOrSuggestionModel> {
+    private fun buildFriendModels(
+        results: List<SearchResult>,
+        newAvatarModels: ArrayList<ContactAvatarModel>,
+        isFavourite: Boolean = false,
+        isExtension: Boolean = false
+    ): ArrayList<ConversationContactOrSuggestionModel> {
+        val list = arrayListOf<ConversationContactOrSuggestionModel>()
+        for (result in results) {
+            val friend = result.friend ?: continue
+            val mainAddress = result.address ?: LinphoneUtils.getFirstAvailableAddressForFriend(friend)
+            if (mainAddress != null) {
+                val model = ConversationContactOrSuggestionModel(
+                    mainAddress,
+                    friend = friend,
+                    isFavourite = isFavourite,
+                    isExtension = isExtension
+                )
+                val avatarModel = coreContext.contactsManager.getContactAvatarModelForFriend(
+                    friend
+                )
+                newAvatarModels.add(avatarModel)
+                model.avatarModel.postValue(avatarModel)
+                list.add(model)
+            } else {
+                Log.w("$TAG Found friend [${friend.name}] in search results but no Address could be found, skipping it")
+            }
+        }
+        return list
+    }
+
+    // Same rule as ContactAvatarModel.isInternal, without having to build a model first
+    @WorkerThread
+    private fun isInternalFriend(friend: Friend, defaultDomain: String): Boolean {
+        return defaultDomain.isNotEmpty() && friend.addresses.any { it.domain == defaultDomain }
+    }
+
+    @WorkerThread
+    private fun getResultName(result: SearchResult): String {
+        return result.friend?.name ?: result.address?.displayName ?: result.address?.username.orEmpty()
+    }
+
+    @WorkerThread
+    private fun getConversationsList(
+        filter: String,
+        newAvatarModels: ArrayList<ContactAvatarModel>
+    ): ArrayList<ConversationContactOrSuggestionModel> {
         val conversationsList = arrayListOf<ConversationContactOrSuggestionModel>()
         for (chatRoom in LinphoneUtils.getDefaultAccount()?.chatRooms.orEmpty()) {
             // Do not list conversations in which we can't send a message
@@ -458,6 +518,7 @@ abstract class AddressSelectionViewModel
                 } else {
                     coreContext.contactsManager.getContactAvatarModelForFriend(friend)
                 }
+                newAvatarModels.add(avatarModel)
                 model.avatarModel.postValue(avatarModel)
                 conversationsList.add(model)
             }

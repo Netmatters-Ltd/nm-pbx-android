@@ -664,6 +664,8 @@ class SettingsViewModel
         coreContext.postOnCoreThread {
             corePreferences.themeMainColor = colorName
             Log.i("$TAG Color [$colorName] saved")
+            // The color is only read when the activity's theme is created, so recreate it once saved
+            recreateActivityEvent.postValue(Event(true))
         }
         color.value = colorName
     }

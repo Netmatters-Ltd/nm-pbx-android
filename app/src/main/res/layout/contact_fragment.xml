@@ -128,11 +128,11 @@
                     <androidx.appcompat.widget.AppCompatTextView
                         style="@style/default_text_style_300"
                         android:id="@+id/status"
-                        android:visibility="@{viewModel.contact.presenceStatus == ConsolidatedPresence.Offline ? View.GONE : View.VISIBLE}"
+                        android:visibility="@{viewModel.contact.presenceVisible ? View.VISIBLE : View.GONE}"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@{viewModel.contact.lastPresenceInfo, default=@string/contact_presence_status_online}"
-                        android:textColor="@{viewModel.contact.presenceStatus == ConsolidatedPresence.Online ? @color/success_500 : @color/warning_600, default=@color/success_500}"
+                        android:text="@{viewModel.contact.presenceStatusLabel, default=@string/presence_status_available}"
+                        app:textColorFromPresence="@{viewModel.contact.presenceUserStatus}"
                         android:textSize="14sp"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
@@ -496,6 +496,24 @@
                         app:layout_constraintTop_toBottomOf="@id/trust_background"/>
 
                     <androidx.appcompat.widget.AppCompatTextView
+                        android:onClick="@{() -> viewModel.toggleFavourite()}"
+                        style="@style/context_menu_action_label_style"
+                        android:id="@+id/action_favorite"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/action_background_top"
+                        android:visibility="@{viewModel.isStored ? View.VISIBLE : View.GONE}"
+                        android:text="@{viewModel.isFavourite ? @string/contact_details_remove_from_favourites : @string/contact_details_add_to_favourites, default=@string/contact_details_add_to_favourites}"
+                        android:drawableStart="@{viewModel.isFavourite ? @drawable/heart_fill : @drawable/heart, default=@drawable/heart_fill}"
+                        android:drawableTint="@{viewModel.isFavourite ? @color/danger_500 : @color/main2_500, default=@color/main2_500}"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/actions"/>
+
+                    <androidx.appcompat.widget.AppCompatTextView
                         android:onClick="@{shareClickListener}"
                         style="@style/context_menu_action_label_style"
                         android:id="@+id/action_share"
@@ -503,13 +521,24 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/action_background_full"
+                        android:background="@{viewModel.isStored ? @drawable/action_background_bottom : @drawable/action_background_full, default=@drawable/action_background_bottom}"
                         android:text="@string/contact_details_share"
                         android:drawableStart="@drawable/share_network"
+                        app:layout_goneMarginTop="8dp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/actions"/>
+                        app:layout_constraintTop_toBottomOf="@id/action_favorite"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:background="?attr/color_separator"
+                        android:visibility="@{viewModel.isStored ? View.VISIBLE : View.GONE}"
+                        app:layout_constraintEnd_toEndOf="@id/action_favorite"
+                        app:layout_constraintStart_toStartOf="@id/action_favorite"
+                        app:layout_constraintTop_toBottomOf="@+id/action_favorite"/>
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 

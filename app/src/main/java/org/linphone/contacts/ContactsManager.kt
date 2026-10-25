@@ -86,6 +86,16 @@ class ContactsManager
     // Used by the contacts list to stop the pull-to-refresh spinner once a manual sync completes.
     val cardDavSyncResultEvent = MutableLiveData<Event<Boolean>>()
 
+    // True while a CardDAV friend list is being synchronised. The first sync of a large address
+    // book can take minutes, so the contacts lists use this to say they're still fetching.
+    val cardDavSyncInProgress = MutableLiveData(false)
+
+    private var cardDavSyncStartTime = 0L
+
+    // CardDAV friend lists that had a contact created, updated or deleted during their current sync.
+    // Only these need their presence subscriptions refreshing once the sync succeeds.
+    private val friendListsChangedDuringSync = hashSetOf<FriendList>()
+
     private val listeners = arrayListOf<ContactsListener>()
 
     private val knownContactsAvatarsMap = hashMapOf<String, ContactAvatarModel>()
@@ -94,6 +104,9 @@ class ContactsManager
     private val magicSearchMap = hashMapOf<String, MagicSearch>()
 
     private val unknownRemoteContactDirectoriesContactsMap = arrayListOf<String>()
+
+    // Cache of corePreferences.favouriteContacts, loaded on first use. Only accessed from the Core thread.
+    private var favouriteKeys: HashSet<String>? = null
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var reloadPresenceContactsJob: Job? = null
@@ -233,6 +246,7 @@ class ContactsManager
 
         @WorkerThread
         override fun onContactCreated(friendList: FriendList, linphoneFriend: Friend) {
+            friendListsChangedDuringSync.add(friendList)
             for (address in linphoneFriend.addresses) {
                 removeUnknownAddressFromMap(address)
             }
@@ -240,6 +254,7 @@ class ContactsManager
 
         @WorkerThread
         override fun onContactDeleted(friendList: FriendList, linphoneFriend: Friend) {
+            friendListsChangedDuringSync.add(friendList)
             for (address in linphoneFriend.addresses) {
                 removeKnownAddressFromMap(address)
             }
@@ -251,6 +266,7 @@ class ContactsManager
             newFriend: Friend,
             oldFriend: Friend
         ) {
+            friendListsChangedDuringSync.add(friendList)
             for (address in oldFriend.addresses) {
                 removeKnownAddressFromMap(address)
             }
@@ -267,17 +283,33 @@ class ContactsManager
         ) {
             Log.i("$TAG Friend list [${friendList.displayName}] sync status changed to [$status]")
             when (status) {
+                FriendList.SyncStatus.Started -> {
+                    cardDavSyncStartTime = System.currentTimeMillis()
+                    cardDavSyncInProgress.postValue(true)
+                    friendListsChangedDuringSync.remove(friendList)
+                }
                 FriendList.SyncStatus.Successful -> {
+                    Log.i(
+                        "$TAG Friend list [${friendList.displayName}] synced in [${System.currentTimeMillis() - cardDavSyncStartTime}] ms"
+                    )
+                    cardDavSyncInProgress.postValue(false)
                     notifyContactsListChanged()
                     cardDavSyncResultEvent.postValue(Event(true))
 
-                    // The list was empty when subscriptions were first enabled at startup, so the
-                    // SDK's aggregated RLS SUBSCRIBE went out with no resources. Now that the
-                    // CardDAV sync has populated it, force a fresh SUBSCRIBE so presence NOTIFYs
-                    // start arriving without needing a background/foreground round-trip. Toggle
-                    // rather than updateSubscriptions() (see AccountModel.setAsDefault):
+                    // If the sync changed the list (on first sync it was empty when subscriptions
+                    // were enabled at startup, so the SDK's aggregated RLS SUBSCRIBE went out with
+                    // no resources), force a fresh SUBSCRIBE so presence NOTIFYs cover the new
+                    // contents without needing a background/foreground round-trip. Toggle rather
+                    // than updateSubscriptions() (see AccountModel.setAsDefault):
                     // updateSubscriptions() is a no-op unless a friend object changed.
-                    if (friendList.isSubscriptionsEnabled) {
+                    // An unchanged list is skipped: the resource list is large with a big address
+                    // book, and the SUBSCRIBE sent at startup already covers it.
+                    val changed = friendListsChangedDuringSync.remove(friendList)
+                    if (!changed) {
+                        Log.i(
+                            "$TAG CardDAV list [${friendList.displayName}] unchanged by sync, keeping presence subscriptions"
+                        )
+                    } else if (friendList.isSubscriptionsEnabled) {
                         Log.i(
                             "$TAG CardDAV list [${friendList.displayName}] synced, refreshing presence subscriptions"
                         )
@@ -287,7 +319,9 @@ class ContactsManager
                 }
                 FriendList.SyncStatus.Failure -> {
                     Log.e("$TAG Friend list [${friendList.displayName}] sync failed: $message")
+                    cardDavSyncInProgress.postValue(false)
                     cardDavSyncResultEvent.postValue(Event(false))
+                    friendListsChangedDuringSync.remove(friendList)
                 }
                 else -> {}
             }
@@ -599,6 +633,63 @@ class ContactsManager
     @WorkerThread
     fun isContactAvailable(friend: Friend): Boolean {
         return !friend.refKey.isNullOrEmpty() && !isContactTemporary(friend)
+    }
+
+    @WorkerThread
+    fun isFavourite(friend: Friend): Boolean {
+        if (!isInCardDavList(friend)) return friend.starred
+
+        val keys = getFavouriteKeys()
+        if (keys.isEmpty()) return false
+        val key = getFavouriteKey(friend) ?: return false
+        return keys.contains(key)
+    }
+
+    @WorkerThread
+    fun setFavourite(friend: Friend, favourite: Boolean) {
+        Log.i(
+            "$TAG Flagging contact [${friend.name}] as ${if (favourite) "favourite" else "no longer favourite"}"
+        )
+
+        if (!isInCardDavList(friend)) {
+            friend.edit()
+            friend.starred = favourite
+            friend.done()
+            return
+        }
+
+        val key = getFavouriteKey(friend)
+        if (key == null) {
+            Log.e("$TAG Contact [${friend.name}] has no vCard UID nor ref key, can't change its favourite status")
+            return
+        }
+
+        val keys = getFavouriteKeys()
+        val changed = if (favourite) keys.add(key) else keys.remove(key)
+        if (changed) {
+            corePreferences.favouriteContacts = keys.toTypedArray()
+        }
+    }
+
+    // Contacts from a CardDAV address book (the PBX's shared directory) are favourited by the app
+    // only: starring the Friend would write X-LINPHONE-STARRED into its vCard, which is pushed back
+    // to the server (changing it for everyone) or lost on the next sync.
+    @WorkerThread
+    private fun isInCardDavList(friend: Friend): Boolean {
+        return friend.friendList?.type == FriendList.Type.CardDAV
+    }
+
+    // vCard UID is stable across syncs, unlike the etag which may be shared between vCards
+    @WorkerThread
+    private fun getFavouriteKey(friend: Friend): String? {
+        return friend.vcard?.uid?.ifEmpty { null } ?: friend.refKey?.ifEmpty { null }
+    }
+
+    @WorkerThread
+    private fun getFavouriteKeys(): HashSet<String> {
+        val keys = favouriteKeys ?: corePreferences.favouriteContacts.toHashSet()
+        favouriteKeys = keys
+        return keys
     }
 
     @WorkerThread

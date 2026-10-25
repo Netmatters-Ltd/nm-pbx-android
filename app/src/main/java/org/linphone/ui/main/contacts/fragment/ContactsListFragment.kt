@@ -39,6 +39,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.io.File
 import org.linphone.R
@@ -125,13 +126,17 @@ class ContactsListFragment : AbstractMainFragment() {
         binding.viewModel = listViewModel
         observeToastEvents(listViewModel)
 
+        // Every list update hands the rows new models, so they always count as changed. Without
+        // disabling change animations, each visible row gets a newly inflated view rather than a rebind.
         binding.contactsList.setHasFixedSize(true)
         binding.contactsList.layoutManager = LinearLayoutManager(requireContext())
+        (binding.contactsList.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
 
         binding.favouritesContactsList.setHasFixedSize(true)
         val favouritesLayoutManager = LinearLayoutManager(requireContext())
         favouritesLayoutManager.orientation = LinearLayoutManager.HORIZONTAL
         binding.favouritesContactsList.layoutManager = favouritesLayoutManager
+        (binding.favouritesContactsList.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
 
         configureAdapter(adapter)
         configureAdapter(favouritesAdapter)
@@ -233,6 +238,9 @@ class ContactsListFragment : AbstractMainFragment() {
             } else {
                 R.string.bottom_navigation_contacts_label
             }
+        )
+        binding.fetchingFromServerLabel.text = getString(
+            if (extensionsMode) R.string.extensions_list_fetching else R.string.contacts_list_fetching
         )
         setViewModel(listViewModel)
         initViews(

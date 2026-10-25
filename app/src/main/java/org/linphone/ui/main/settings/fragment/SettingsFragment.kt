@@ -94,7 +94,6 @@ class SettingsFragment : GenericMainFragment() {
             // Be careful not to create an infinite loop
             if (value != viewModel.color.value.orEmpty()) {
                 viewModel.setColor(value)
-                requireActivity().recreate()
             }
         }
 

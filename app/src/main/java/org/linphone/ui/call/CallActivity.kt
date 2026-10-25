@@ -22,7 +22,6 @@ package org.linphone.ui.call
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Resources
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
@@ -47,7 +46,6 @@ import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.linphone.LinphoneApplication.Companion.coreContext
-import org.linphone.LinphoneApplication.Companion.corePreferences
 import org.linphone.R
 import org.linphone.compatibility.Api28Compatibility
 import org.linphone.compatibility.Compatibility
@@ -105,19 +103,17 @@ class CallActivity : GenericActivity() {
         }
     }
 
-    override fun getTheme(): Resources.Theme {
-        val mainColor = corePreferences.themeMainColor
-        val theme = super.getTheme()
-        when (mainColor) {
-            "yellow" -> theme.applyStyle(R.style.Theme_LinphoneInCallYellow, true)
-            "green" -> theme.applyStyle(R.style.Theme_LinphoneInCallGreen, true)
-            "blue" -> theme.applyStyle(R.style.Theme_LinphoneInCallBlue, true)
-            "red" -> theme.applyStyle(R.style.Theme_LinphoneInCallRed, true)
-            "pink" -> theme.applyStyle(R.style.Theme_LinphoneInCallPink, true)
-            "purple" -> theme.applyStyle(R.style.Theme_LinphoneInCallPurple, true)
-            else -> theme.applyStyle(R.style.Theme_LinphoneInCall, true)
+    // Each in-call style inherits from the matching main color style, so applying it alone is enough
+    override fun getMainColorStyle(color: String): Int {
+        return when (color) {
+            "yellow" -> R.style.Theme_LinphoneInCallYellow
+            "green" -> R.style.Theme_LinphoneInCallGreen
+            "blue" -> R.style.Theme_LinphoneInCallBlue
+            "red" -> R.style.Theme_LinphoneInCallRed
+            "pink" -> R.style.Theme_LinphoneInCallPink
+            "purple" -> R.style.Theme_LinphoneInCallPurple
+            else -> R.style.Theme_LinphoneInCall
         }
-        return theme
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

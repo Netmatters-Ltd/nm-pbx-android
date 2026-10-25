@@ -240,13 +240,8 @@ Each contact is backed by a `ContactAvatarModel` (observable/reactive object) wh
 - `presenceStatus: ConsolidatedPresence` — the SDK-level status (Online, Busy, Offline).
 - `presenceActivity: PresenceActivity.Kind?` — the specific RPID activity kind (Away, Busy, Other, etc.), or `nil` for Available/Offline.
 - `presenceNote: String` — the custom status message text (may be empty).
-- `lastPresenceInfo: String` — a human-readable "last seen" string. The exact iOS formats (en locale; `fr_FR` uses 24-hour and `dd/MM`):
-  - Currently online → `"Online"`
-  - Earlier today → `"Online today at h:mm a"` (e.g. `"Online today at 2:30 PM"`)
-  - Yesterday → `"Online yesterday at h:mm a"`
-  - Earlier this year → `"Online on MM/dd | h:mm a"`
-  - Older → `"Online on MM/dd/yy | h:mm a"`
-  - Offline → empty string.
+- `lastPresenceInfo: String` — the status line shown under the contact's name on the contact details, call history details and conversation info screens. See "Incoming `NOTIFY` parsing" below for how it is built.
+  - **Android differs from iOS here.** iOS shows a "last seen" time (`"Online today at h:mm a"`, `"Online yesterday at h:mm a"`, `"Online on MM/dd | h:mm a"`) whenever `consolidatedPresence == .Busy`. Android deliberately does not, because that timestamp is the PIDF `<timestamp>` of the latest presence document, not the time the contact was last online. For a PBX extension that has set Away, Busy or Do Not Disturb it just reflects when that status was last published, so "Online today at 15:32" was misleading.
 
 These are populated on initial load from `friend.consolidatedPresence`, `friend.presenceModel?.activity?.type`, and `friend.presenceModel?.getNote(lang: nil)?.content`, then kept live by a `FriendDelegate` (`onPresenceReceived` callback) which updates all four properties whenever a `NOTIFY` arrives for that contact.
 
@@ -371,15 +366,14 @@ val consolidatedPresence = friend.consolidatedPresence   // Online / Busy / Offl
 val activityKind = friend.presenceModel?.activity?.type  // Away, Busy, Other, PermanentAbsence, Unknown, null
 val activityDescription = friend.presenceModel?.activity?.description  // "dnd" for DnD, else null
 val note = friend.presenceModel?.getNote(null)?.content ?: ""
-val latestActivityTimestamp = friend.presenceModel?.latestActivityTimestamp ?: -1L
 ```
 
 Map to display status using the `presenceUserStatus` logic in the table above. Update the contact row reactively (LiveData / StateFlow / equivalent).
 
-Update `lastPresenceInfo` based on the timestamp:
+Update `lastPresenceInfo` (Android, `ContactAvatarModel.computePresence()`):
 - `consolidatedPresence == Online` → `"Online"`
-- `consolidatedPresence == Busy` and `latestActivityTimestamp != -1` → `"Online today at h:mm a"` / `"Online yesterday at h:mm a"` / `"Online on MM/dd | h:mm a"` / `"Online on MM/dd/yy | h:mm a"` (formatted per locale; see the format list above)
-- `consolidatedPresence == Busy` and `latestActivityTimestamp == -1` → `"Away"`
-- `consolidatedPresence == Offline` → `""` (empty)
+- `consolidatedPresence == Busy` → the display status label from the colour and label table (`"Away"`, `"Busy"` or `"Do Not Disturb"`), i.e. the same label shown on the contact row. `latestActivityTimestamp` is not used.
+- `consolidatedPresence == DoNotDisturb` → `"Do not disturb"`
+- `consolidatedPresence == Offline` → `""` (empty, and the status line is hidden)
 
 The `FriendListener` (`onPresenceReceived`) should be registered when a contact's row becomes active and deregistered when it is destroyed to avoid memory leaks. On Android this is typically done in the `ViewModel`'s `onCleared()` or a lifecycle-aware component.

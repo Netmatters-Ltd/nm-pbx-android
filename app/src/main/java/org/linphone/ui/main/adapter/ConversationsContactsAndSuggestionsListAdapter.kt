@@ -50,6 +50,7 @@ class ConversationsContactsAndSuggestionsListAdapter :
         private const val FAVORITE_TYPE = 1
         private const val SUGGESTION_TYPE = 2
         private const val CONVERSATION_TYPE = 3
+        private const val EXTENSION_TYPE = 4
     }
 
     val onClickedEvent: MutableLiveData<Event<ConversationContactOrSuggestionModel>> by lazy {
@@ -78,6 +79,9 @@ class ConversationsContactsAndSuggestionsListAdapter :
             FAVORITE_TYPE -> {
                 AppUtils.getString(R.string.generic_address_picker_favorites_list_title)
             }
+            EXTENSION_TYPE -> {
+                AppUtils.getString(R.string.generic_address_picker_extensions_list_title)
+            }
             else -> {
                 AppUtils.getString(R.string.generic_address_picker_contacts_list_title)
             }
@@ -90,8 +94,10 @@ class ConversationsContactsAndSuggestionsListAdapter :
         return if (model.conversationId.isNotEmpty()) {
             CONVERSATION_TYPE
         } else if (model.friend != null) {
-            if (model.starred) {
+            if (model.isFavourite) {
                 FAVORITE_TYPE
+            } else if (model.isExtension) {
+                EXTENSION_TYPE
             } else {
                 CONTACT_TYPE
             }
@@ -118,7 +124,7 @@ class ConversationsContactsAndSuggestionsListAdapter :
                 }
                 ConversationViewHolder(binding)
             }
-            CONTACT_TYPE, FAVORITE_TYPE -> {
+            CONTACT_TYPE, FAVORITE_TYPE, EXTENSION_TYPE -> {
                 val binding: GenericAddressPickerContactListCellBinding = DataBindingUtil.inflate(
                     LayoutInflater.from(parent.context),
                     R.layout.generic_address_picker_contact_list_cell,
@@ -156,7 +162,7 @@ class ConversationsContactsAndSuggestionsListAdapter :
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (getItemViewType(position)) {
             CONVERSATION_TYPE -> (holder as ConversationViewHolder).bind(getItem(position))
-            CONTACT_TYPE, FAVORITE_TYPE -> (holder as ContactViewHolder).bind(getItem(position))
+            CONTACT_TYPE, FAVORITE_TYPE, EXTENSION_TYPE -> (holder as ContactViewHolder).bind(getItem(position))
             else -> (holder as SuggestionViewHolder).bind(getItem(position))
         }
     }
@@ -183,7 +189,8 @@ class ConversationsContactsAndSuggestionsListAdapter :
                 model = conversationContactOrSuggestionModel
 
                 val previousItem = bindingAdapterPosition - 1
-                val previousLetter = if (previousItem >= 0) {
+                // Each section restarts its letters, so ignore the previous item if it's in another one
+                val previousLetter = if (previousItem >= 0 && getItemViewType(previousItem) == getItemViewType(bindingAdapterPosition)) {
                     getItem(previousItem).name[0].toString()
                 } else {
                     ""

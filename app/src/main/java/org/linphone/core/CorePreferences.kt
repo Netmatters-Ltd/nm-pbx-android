@@ -224,6 +224,14 @@ class CorePreferences
             config.setBool("ui", "show_favorites_contacts", value)
         }
 
+    // vCard UIDs of the CardDAV contacts flagged as favourite, see ContactsManager.isFavourite()
+    @get:WorkerThread @set:WorkerThread
+    var favouriteContacts: Array<String>
+        get() = config.getStringList("ui", "favourite_contacts", arrayOf())
+        set(value) {
+            config.setStringList("ui", "favourite_contacts", value)
+        }
+
     @get:WorkerThread @set:WorkerThread
     var friendListInWhichStoreNewlyCreatedFriends: String
         get() = config.getString(
