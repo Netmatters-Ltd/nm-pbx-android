@@ -102,7 +102,7 @@ class ContactAvatarModel
     fun update(address: Address?) {
         updateSecurityLevel(address)
 
-        isFavourite.postValue(friend.starred)
+        isFavourite.postValue(coreContext.contactsManager.isFavourite(friend))
         initials.postValue(AppUtils.getInitials(friend.name.orEmpty()))
         showTrust.postValue(true)
         // Empty rather than "null" when there's no picture, so the avatar goes straight to initials

@@ -94,7 +94,7 @@ class ConversationsContactsAndSuggestionsListAdapter :
         return if (model.conversationId.isNotEmpty()) {
             CONVERSATION_TYPE
         } else if (model.friend != null) {
-            if (model.starred) {
+            if (model.isFavourite) {
                 FAVORITE_TYPE
             } else if (model.isExtension) {
                 EXTENSION_TYPE

@@ -105,6 +105,9 @@ class ContactsManager
 
     private val unknownRemoteContactDirectoriesContactsMap = arrayListOf<String>()
 
+    // Cache of corePreferences.favouriteContacts, loaded on first use. Only accessed from the Core thread.
+    private var favouriteKeys: HashSet<String>? = null
+
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var reloadPresenceContactsJob: Job? = null
     private var reloadRemoteContactsJob: Job? = null
@@ -630,6 +633,63 @@ class ContactsManager
     @WorkerThread
     fun isContactAvailable(friend: Friend): Boolean {
         return !friend.refKey.isNullOrEmpty() && !isContactTemporary(friend)
+    }
+
+    @WorkerThread
+    fun isFavourite(friend: Friend): Boolean {
+        if (!isInCardDavList(friend)) return friend.starred
+
+        val keys = getFavouriteKeys()
+        if (keys.isEmpty()) return false
+        val key = getFavouriteKey(friend) ?: return false
+        return keys.contains(key)
+    }
+
+    @WorkerThread
+    fun setFavourite(friend: Friend, favourite: Boolean) {
+        Log.i(
+            "$TAG Flagging contact [${friend.name}] as ${if (favourite) "favourite" else "no longer favourite"}"
+        )
+
+        if (!isInCardDavList(friend)) {
+            friend.edit()
+            friend.starred = favourite
+            friend.done()
+            return
+        }
+
+        val key = getFavouriteKey(friend)
+        if (key == null) {
+            Log.e("$TAG Contact [${friend.name}] has no vCard UID nor ref key, can't change its favourite status")
+            return
+        }
+
+        val keys = getFavouriteKeys()
+        val changed = if (favourite) keys.add(key) else keys.remove(key)
+        if (changed) {
+            corePreferences.favouriteContacts = keys.toTypedArray()
+        }
+    }
+
+    // Contacts from a CardDAV address book (the PBX's shared directory) are favourited by the app
+    // only: starring the Friend would write X-LINPHONE-STARRED into its vCard, which is pushed back
+    // to the server (changing it for everyone) or lost on the next sync.
+    @WorkerThread
+    private fun isInCardDavList(friend: Friend): Boolean {
+        return friend.friendList?.type == FriendList.Type.CardDAV
+    }
+
+    // vCard UID is stable across syncs, unlike the etag which may be shared between vCards
+    @WorkerThread
+    private fun getFavouriteKey(friend: Friend): String? {
+        return friend.vcard?.uid?.ifEmpty { null } ?: friend.refKey?.ifEmpty { null }
+    }
+
+    @WorkerThread
+    private fun getFavouriteKeys(): HashSet<String> {
+        val keys = favouriteKeys ?: corePreferences.favouriteContacts.toHashSet()
+        favouriteKeys = keys
+        return keys
     }
 
     @WorkerThread

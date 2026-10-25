@@ -100,8 +100,6 @@ class ContactsListViewModel
 
     private lateinit var magicSearch: MagicSearch
 
-    private lateinit var favouritesMagicSearch: MagicSearch
-
     private var firstLoad = true
 
     // Friend models currently displayed in each list. They are built fresh for every search and
@@ -115,15 +113,7 @@ class ContactsListViewModel
         @WorkerThread
         override fun onSearchResultsReceived(magicSearch: MagicSearch) {
             Log.i("$TAG Magic search contacts available")
-            processMagicSearchResults(magicSearch.lastSearch, favourites = false)
-        }
-    }
-
-    private val favouritesMagicSearchListener = object : MagicSearchListenerStub() {
-        @WorkerThread
-        override fun onSearchResultsReceived(magicSearch: MagicSearch) {
-            Log.i("$TAG Magic search favourites contacts available")
-            processMagicSearchResults(magicSearch.lastSearch, favourites = true)
+            processMagicSearchResults(magicSearch.lastSearch)
         }
     }
 
@@ -132,7 +122,6 @@ class ContactsListViewModel
         override fun onContactsLoaded() {
             Log.i("$TAG Contacts have been (re)loaded, updating list")
             magicSearch.resetSearchCache()
-            favouritesMagicSearch.resetSearchCache()
 
             applyFilter(
                 currentFilter,
@@ -171,10 +160,6 @@ class ContactsListViewModel
             magicSearch.limitedSearch = false
             magicSearch.addListener(magicSearchListener)
 
-            favouritesMagicSearch = core.createMagicSearch()
-            favouritesMagicSearch.limitedSearch = false
-            favouritesMagicSearch.addListener(favouritesMagicSearchListener)
-
             coreContext.postOnMainThread {
                 applyFilter(currentFilter)
             }
@@ -186,7 +171,6 @@ class ContactsListViewModel
         coreContext.contactsManager.cardDavSyncResultEvent.removeObserver(cardDavSyncObserver)
         coreContext.postOnCoreThread {
             magicSearch.removeListener(magicSearchListener)
-            favouritesMagicSearch.removeListener(favouritesMagicSearchListener)
             coreContext.contactsManager.removeListener(contactsListener)
 
             contactsModels.forEach(ContactAvatarModel::destroy)
@@ -294,13 +278,8 @@ class ContactsListViewModel
     @UiThread
     fun toggleContactFavoriteFlag(contactModel: ContactAvatarModel) {
         coreContext.postOnCoreThread {
-            contactModel.friend.edit()
-            val starred = !contactModel.friend.starred
-            Log.i(
-                "$TAG Friend [${contactModel.name.value}] will be [${if (starred) "added to" else "removed from"}] favourites"
-            )
-            contactModel.friend.starred = starred
-            contactModel.friend.done()
+            val favourite = !coreContext.contactsManager.isFavourite(contactModel.friend)
+            coreContext.contactsManager.setFavourite(contactModel.friend, favourite)
             coreContext.contactsManager.notifyContactsListChanged()
         }
     }
@@ -347,15 +326,9 @@ class ContactsListViewModel
         )
         searchInProgress.postValue(filter.isNotEmpty())
 
-        if (filter.isEmpty()) {
-            favouritesMagicSearch.getContactsListAsync(
-                filter,
-                searchDomain,
-                MagicSearch.Source.FavoriteFriends.toInt(),
-                MagicSearch.Aggregation.Friend
-            )
-        }
-
+        // Favourites are picked out of these results too (see processMagicSearchResults()), not
+        // through Magic search's FavoriteFriends source: CardDAV contacts are favourited by the app,
+        // so the SDK doesn't know about them
         magicSearch.getContactsListAsync(
             filter,
             searchDomain,
@@ -365,8 +338,8 @@ class ContactsListViewModel
     }
 
     @WorkerThread
-    private fun processMagicSearchResults(results: Array<SearchResult>, favourites: Boolean) {
-        Log.i("$TAG Processing [${results.size}] results, favourites is [$favourites]")
+    private fun processMagicSearchResults(results: Array<SearchResult>) {
+        Log.i("$TAG Processing [${results.size}] results")
 
         // Keep only the results for the displayed tab before building any avatar model (the costly
         // part), so the Contacts tab never pays for extensions and vice versa. Every result of
@@ -383,7 +356,7 @@ class ContactsListViewModel
         // narrows them down so any contact can be reached. Extensions and favourites are never
         // capped, the app needs to see them all to track their presence.
         val maxContacts = corePreferences.maxContactsDisplayed
-        val capped = !favourites && !extensionsMode && maxContacts > 0 && tabResults.size > maxContacts
+        val capped = !extensionsMode && maxContacts > 0 && tabResults.size > maxContacts
         val toDisplay = if (capped) tabResults.take(maxContacts) else tabResults
 
         val list = arrayListOf<ContactAvatarModel>()
@@ -392,60 +365,81 @@ class ContactsListViewModel
         var count = 0
 
         for (result in toDisplay) {
-            val friend = result.friend
-
-            if (friend != null) {
-                if (friend.refKey.orEmpty().isEmpty()) {
-                    if (friend.vcard != null) {
-                        friend.vcard?.generateUniqueId()
-                        friend.refKey = friend.vcard?.uid
-                    } else {
-                        Log.w(
-                            "$TAG Friend [${friend.name}] found in SearchResults doesn't have a refKey, using name instead"
-                        )
-                        friend.refKey = friend.name
-                    }
-                }
-            }
-
-            val model = if (friend != null) {
-                coreContext.contactsManager.getContactAvatarModelForFriend(friend).also {
-                    friendModels.add(it)
-                }
-            } else {
-                coreContext.contactsManager.getContactAvatarModelForAddress(result.address)
-            }
-
-            list.add(model)
+            list.add(buildModel(result, friendModels))
             count += 1
 
-            val starred = friend?.starred == true
-            model.isFavourite.postValue(starred)
-
-            if (!favourites && firstLoad && count == 20) {
+            if (firstLoad && count == 20) {
                 // Incremental slice, already limited to the displayed tab and sorted
                 contactsList.postValue(ArrayList(list))
                 contactsListTruncated.postValue(capped)
             }
         }
 
-        val previousModels = if (favourites) favouritesModels else contactsModels
-        previousModels.forEach(ContactAvatarModel::destroy)
-        previousModels.clear()
-        previousModels.addAll(friendModels)
+        contactsModels.forEach(ContactAvatarModel::destroy)
+        contactsModels.clear()
+        contactsModels.addAll(friendModels)
 
-        searchInProgress.postValue(false)
-        if (favourites) {
-            favouritesList.postValue(list)
-        } else {
-            contactsList.postValue(list)
-            contactsListTruncated.postValue(capped)
-            firstLoad = false
+        // Favourites are only shown when the list isn't filtered. Picked from all of the tab's
+        // results, not only the displayed ones, so the cap never hides one.
+        var favouritesCount = 0
+        if (currentFilter.isEmpty()) {
+            val favouriteModels = arrayListOf<ContactAvatarModel>()
+            val favourites = arrayListOf<ContactAvatarModel>()
+            for (result in tabResults) {
+                val friend = result.friend ?: continue
+                if (coreContext.contactsManager.isFavourite(friend)) {
+                    favourites.add(buildModel(result, favouriteModels))
+                }
+            }
+            favouritesCount = favourites.size
+
+            favouritesModels.forEach(ContactAvatarModel::destroy)
+            favouritesModels.clear()
+            favouritesModels.addAll(favouriteModels)
+            favouritesList.postValue(favourites)
         }
 
+        searchInProgress.postValue(false)
+        contactsList.postValue(list)
+        contactsListTruncated.postValue(capped)
+        firstLoad = false
+
         Log.i(
-            "$TAG Processed [${results.size}] results into [${list.size} contacts] (extensionsMode [$extensionsMode], capped [$capped] from [${tabResults.size}])"
+            "$TAG Processed [${results.size}] results into [${list.size} contacts] and [$favouritesCount] favourites (extensionsMode [$extensionsMode], capped [$capped] from [${tabResults.size}])"
         )
+    }
+
+    @WorkerThread
+    private fun buildModel(
+        result: SearchResult,
+        friendModels: ArrayList<ContactAvatarModel>
+    ): ContactAvatarModel {
+        val friend = result.friend
+
+        if (friend != null) {
+            if (friend.refKey.orEmpty().isEmpty()) {
+                if (friend.vcard != null) {
+                    friend.vcard?.generateUniqueId()
+                    friend.refKey = friend.vcard?.uid
+                } else {
+                    Log.w(
+                        "$TAG Friend [${friend.name}] found in SearchResults doesn't have a refKey, using name instead"
+                    )
+                    friend.refKey = friend.name
+                }
+            }
+        }
+
+        // Friend models are flagged as favourite on creation (ContactAvatarModel.update())
+        return if (friend != null) {
+            coreContext.contactsManager.getContactAvatarModelForFriend(friend).also {
+                friendModels.add(it)
+            }
+        } else {
+            coreContext.contactsManager.getContactAvatarModelForAddress(result.address).also {
+                it.isFavourite.postValue(false)
+            }
+        }
     }
 
     // Same rule as ContactAvatarModel.isInternal, without having to build a model first

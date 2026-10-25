@@ -36,13 +36,13 @@ class ConversationContactOrSuggestionModel
     conversationSubject: String? = null,
     val friend: Friend? = null,
     val defaultAccountDomain: String? = null,
+    // See ContactsManager.isFavourite(), listed in its own section above everything but conversations
+    val isFavourite: Boolean = false,
     // Internal PBX extension, listed in its own section above external contacts
     val isExtension: Boolean = false,
     private val onClicked: ((Address) -> Unit)? = null
 ) {
     val id = friend?.refKey ?: address.asStringUriOnly().hashCode()
-
-    val starred = friend?.starred == true
 
     val name = conversationSubject
         ?: if (friend != null) {

@@ -310,7 +310,7 @@ class ContactViewModel
 
     @WorkerThread
     fun refreshContactInfo() {
-        isFavourite.postValue(friend.starred)
+        isFavourite.postValue(coreContext.contactsManager.isFavourite(friend))
         // Do not show edit contact button for contacts not stored in a FriendList or
         // if they are in a temporary one (for example if they are from a remote directory such as LDAP or CardDAV)
         isStored.postValue(!coreContext.contactsManager.isContactTemporary(friend))
@@ -411,16 +411,10 @@ class ContactViewModel
     @UiThread
     fun toggleFavourite() {
         coreContext.postOnCoreThread {
-            val favourite = friend.starred
-            Log.i(
-                "$TAG Flagging contact [${friend.name}] as ${if (favourite) "no longer favourite" else "favourite"}"
-            )
+            val favourite = !coreContext.contactsManager.isFavourite(friend)
+            coreContext.contactsManager.setFavourite(friend, favourite)
 
-            friend.edit()
-            friend.starred = !favourite
-            friend.done()
-
-            isFavourite.postValue(friend.starred)
+            isFavourite.postValue(coreContext.contactsManager.isFavourite(friend))
             coreContext.contactsManager.notifyContactsListChanged()
         }
     }
