@@ -893,6 +893,7 @@
     <string name="network_is_not_wifi">Wi-Fi only mode enabled</string>
     <string name="operation_in_progress_overlay">Operation in progress, please wait</string>
     <string name="generic_address_picker_conversations_list_title">Conversations</string>
+    <string name="generic_address_picker_extensions_list_title">Extensions</string>
     <string name="generic_address_picker_contacts_list_title">Contacts</string>
     <string name="generic_address_picker_favorites_list_title">Favorites</string>
     <string name="generic_address_picker_suggestions_list_title">Suggestions</string>

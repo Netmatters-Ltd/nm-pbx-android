@@ -36,6 +36,8 @@ class ConversationContactOrSuggestionModel
     conversationSubject: String? = null,
     val friend: Friend? = null,
     val defaultAccountDomain: String? = null,
+    // Internal PBX extension, listed in its own section above external contacts
+    val isExtension: Boolean = false,
     private val onClicked: ((Address) -> Unit)? = null
 ) {
     val id = friend?.refKey ?: address.asStringUriOnly().hashCode()
@@ -56,6 +58,9 @@ class ConversationContactOrSuggestionModel
     val avatarModel = MutableLiveData<ContactAvatarModel>()
 
     val selected = MutableLiveData<Boolean>()
+
+    // Shown under this row when it's the last of a contacts list that was cut short
+    var truncatedMessage: String? = null
 
     @UiThread
     fun onClicked() {
