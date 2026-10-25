@@ -852,8 +852,8 @@
     <string name="recordings_list_empty">No recording for the moment…</string>
 
     <!-- Android Auto UI texts -->
-    <string name="car_favorites_contacts_title">Favorites</string>
-    <string name="car_favorites_contacts_list_empty">No favorite contact yet</string>
+    <string name="car_favorites_contacts_title">Favourites</string>
+    <string name="car_favorites_contacts_list_empty">No favourite contact yet</string>
 
     <!-- Various menu entries -->
     <string name="menu_add_address_to_contacts">Add to contacts</string>
@@ -895,7 +895,7 @@
     <string name="generic_address_picker_conversations_list_title">Conversations</string>
     <string name="generic_address_picker_extensions_list_title">Extensions</string>
     <string name="generic_address_picker_contacts_list_title">Contacts</string>
-    <string name="generic_address_picker_favorites_list_title">Favorites</string>
+    <string name="generic_address_picker_favorites_list_title">Favourites</string>
     <string name="generic_address_picker_suggestions_list_title">Suggestions</string>
     <string name="post_notifications_permission_not_granted">Post notifications permission not granted!</string>
     <string name="full_screen_intent_permission_not_granted">Show incoming call permission not granted!</string>
