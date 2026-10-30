@@ -6,6 +6,9 @@
     <data>
         <import type="android.view.View" />
         <variable
+            name="startCallClickListener"
+            type="View.OnClickListener" />
+        <variable
             name="viewModel"
             type="org.linphone.ui.main.contacts.viewmodel.ContactsListViewModel" />
     </data>
@@ -156,6 +159,21 @@
                     app:layout_constraintStart_toEndOf="@id/bottom_nav_bar"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/fetch_in_progress" />
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:onClick="@{startCallClickListener}"
+                    android:id="@+id/new_call"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|bottom"
+                    android:layout_margin="16dp"
+                    android:src="@drawable/phone_plus"
+                    android:contentDescription="@string/content_description_call_start"
+                    app:tint="?attr/color_on_main"
+                    app:backgroundTint="?attr/color_main1_500"
+                    app:shapeAppearanceOverlay="@style/rounded"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 

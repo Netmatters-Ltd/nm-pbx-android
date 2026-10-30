@@ -34,6 +34,12 @@
             app:launchSingleTop="true"
             app:popUpTo="@id/extensionsListFragment"
             app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_extensionsListFragment_to_startCallFragment"
+            app:destination="@id/startCallFragment"
+            app:enterAnim="@anim/slide_in"
+            app:popExitAnim="@anim/slide_out"
+            app:launchSingleTop="true" />
     </fragment>
 
     <fragment
@@ -65,6 +71,12 @@
             app:launchSingleTop="true"
             app:popUpTo="@id/contactsListFragment"
             app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_contactsListFragment_to_startCallFragment"
+            app:destination="@id/startCallFragment"
+            app:enterAnim="@anim/slide_in"
+            app:popExitAnim="@anim/slide_out"
+            app:launchSingleTop="true" />
         <action
             android:id="@+id/action_contactsListFragment_to_newContactFragment"
             app:destination="@id/newContactFragment"

@@ -242,6 +242,20 @@ class ContactsListFragment : AbstractMainFragment() {
         binding.fetchingFromServerLabel.text = getString(
             if (extensionsMode) R.string.extensions_list_fetching else R.string.contacts_list_fetching
         )
+        binding.setStartCallClickListener {
+            val navController = findNavController()
+            val currentId = navController.currentDestination?.id
+            if (currentId == R.id.contactsListFragment) {
+                Log.i("$TAG Navigating to start call fragment from contacts")
+                navController.navigate(
+                    ContactsListFragmentDirections.actionContactsListFragmentToStartCallFragment()
+                )
+            } else if (currentId == R.id.extensionsListFragment) {
+                Log.i("$TAG Navigating to start call fragment from extensions")
+                navController.navigate(R.id.action_extensionsListFragment_to_startCallFragment)
+            }
+        }
+
         setViewModel(listViewModel)
         initViews(
             binding.slidingPaneLayout,
