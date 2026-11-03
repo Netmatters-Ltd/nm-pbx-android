@@ -46,6 +46,8 @@
             app:layout_constraintStart_toEndOf="@id/back"
             app:layout_constraintTop_toTopOf="parent"/>
 
+        <!-- Merging calls into a conference isn't reliable yet, so the button is hidden. To bring it
+             back, restore: android:visibility="@{viewModel.callsCount > 1 ? View.VISIBLE : View.GONE}" -->
         <ImageView
             android:id="@+id/merge"
             android:onClick="@{mergeCallsClickListener}"
@@ -55,7 +57,7 @@
             android:adjustViewBounds="true"
             android:src="@drawable/arrows_merge"
             android:contentDescription="@string/content_description_merge_calls_into_conference"
-            android:visibility="@{viewModel.callsCount > 1 ? View.VISIBLE : View.GONE}"
+            android:visibility="gone"
             app:tint="?attr/color_main1_500"
             app:layout_constraintBottom_toBottomOf="@id/title"
             app:layout_constraintEnd_toEndOf="parent"
