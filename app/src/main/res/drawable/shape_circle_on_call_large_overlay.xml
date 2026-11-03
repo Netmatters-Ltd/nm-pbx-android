@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ring round an avatar while the contact is on a call. Like the trust overlays, the 120dp size
+     only sets the stroke's proportion; the view scales it to the avatar. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <size android:width="120dp" android:height="120dp" />
+    <stroke android:color="@color/yellow_on_call" android:width="@dimen/avatar_large_trust_border_width" />
+</shape>

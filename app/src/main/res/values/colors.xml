@@ -57,6 +57,7 @@
     <!-- Away presence status. Note: orange_main_500 is actually a brand green on Android,
          so presence uses this literal orange instead. -->
     <color name="orange_away">#FFA645</color>
+    <color name="yellow_on_call">#F0BE00</color>
 
     <color name="orange_warning_600">#DBB820</color>
     <color name="orange_warning_600_night">#E1C133</color>

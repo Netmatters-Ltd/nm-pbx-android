@@ -201,15 +201,26 @@ class ContactAvatarModel
         } else {
             friend.getPresenceModelForUriOrTel(address.asStringUriOnly()) ?: friend.presenceModel
         }
-        val activityType = presenceModel?.activity?.type
-        val activityDescription = presenceModel?.activity?.description
+        // The user's own activity, skipping the call-state bridge's on-the-phone wherever it lands
+        val userActivity = UserPresence.userActivity(presenceModel)
+        val activityType = userActivity?.type
+        val activityDescription = userActivity?.description
         val mapped = UserPresence.from(activityType, activityDescription)
-        val userStatus = when (presence) {
-            ConsolidatedPresence.Online ->
-                if (mapped == UserPresence.Offline) UserPresence.Online else mapped
-            ConsolidatedPresence.Busy ->
-                if (mapped == UserPresence.Online || mapped == UserPresence.Offline) UserPresence.Busy else mapped
-            else -> UserPresence.Offline
+        // On a call outranks the manual status. The consolidated presence for a call is Busy, which
+        // can't tell a call apart from someone who chose Busy, so read the activities directly.
+        val onCall = UserPresence.isOnCall(
+            presenceModel?.basicStatus,
+            UserPresence.activityTypes(presenceModel)
+        )
+        val userStatus = when {
+            onCall -> UserPresence.OnCall
+            else -> when (presence) {
+                ConsolidatedPresence.Online ->
+                    if (mapped == UserPresence.Offline) UserPresence.Online else mapped
+                ConsolidatedPresence.Busy ->
+                    if (mapped == UserPresence.Online || mapped == UserPresence.Offline) UserPresence.Busy else mapped
+                else -> UserPresence.Offline
+            }
         }
         presenceActivity.postValue(activityType)
         presenceUserStatus.postValue(userStatus)

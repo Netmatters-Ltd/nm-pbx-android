@@ -77,6 +77,10 @@ class PresenceManager {
      * persists and publishes on the core thread.
      */
     fun setPresence(presence: UserPresence, note: String) {
+        if (!presence.isUserSelectable) {
+            Log.w("$TAG Unable to set presence to [${presence.raw}], it is reported by the server only")
+            return
+        }
         Log.i("$TAG Setting presence to [${presence.raw}] with note [$note]")
         currentPresence.postValue(presence)
         customStatusNote.postValue(note)
@@ -163,8 +167,11 @@ class PresenceManager {
             return
         }
 
-        val activityType = friend.presenceModel?.activity?.type
-        val description = friend.presenceModel?.activity?.description
+        // Skip the call-state bridge's on-the-phone, which isn't a status the user chose. If it came
+        // first, reading only the first activity would resolve to Available and overwrite their status.
+        val userActivity = UserPresence.userActivity(friend.presenceModel)
+        val activityType = userActivity?.type
+        val description = userActivity?.description
         var resolved = UserPresence.from(activityType, description)
 
         // Busy fallback: server says Busy but no parseable activity -> keep Busy, not Available
@@ -211,6 +218,10 @@ class PresenceManager {
 
     @WorkerThread
     private fun persist(presence: UserPresence, note: String) {
+        if (!presence.isUserSelectable) {
+            Log.w("$TAG Not persisting presence [${presence.raw}], it is reported by the server only")
+            return
+        }
         val core = coreContext.core
         core.config.setString(CONFIG_SECTION, CONFIG_KEY_STATUS, presence.raw)
         core.config.setString(CONFIG_SECTION, CONFIG_KEY_NOTE, note)
@@ -220,6 +231,11 @@ class PresenceManager {
     private fun publish(presence: UserPresence, note: String, core: Core) {
         if (!corePreferences.publishPresence) {
             Log.i("$TAG Presence publishing is disabled, only updating local state")
+            return
+        }
+        if (!presence.isUserSelectable) {
+            // On a call comes from the server's call-state bridge and must never be published
+            Log.w("$TAG Not publishing presence [${presence.raw}], it is reported by the server only")
             return
         }
 

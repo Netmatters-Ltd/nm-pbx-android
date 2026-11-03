@@ -513,6 +513,7 @@
     <string name="presence_status_away">Away</string>
     <string name="presence_status_busy">Busy</string>
     <string name="presence_status_do_not_disturb">Do Not Disturb</string>
+    <string name="presence_status_on_call">On a call</string>
     <string name="presence_custom_status_label">Custom status message</string>
     <string name="presence_custom_status_hint">What\'s your status?</string>
     <string name="presence_note_with_dot">· %s</string>
@@ -919,6 +920,7 @@
     <string name="content_description_not_trusted_contact_icon">Contact is not trusted!</string>
     <string name="content_description_contact_online">Contact is online</string>
     <string name="content_description_contact_away">Contact is not online</string>
+    <string name="content_description_contact_on_call">Contact is on a call</string>
     <string name="content_description_open_drawer_menu_icon">Open drawer menu</string>
     <string name="content_description_go_back_icon">Go back</string>
     <string name="content_description_dismiss_notification">Dismiss notification</string>

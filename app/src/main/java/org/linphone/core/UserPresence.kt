@@ -28,13 +28,23 @@ import org.linphone.R
  *
  * The [raw] values must stay exactly "online"/"away"/"busy"/"doNotDisturb"/"offline" so the
  * persisted config remains compatible with the iOS app on shared accounts.
+ *
+ * [OnCall] is inbound only. The server's call-state bridge adds an <rpid:on-the-phone/> activity
+ * while an extension is on a call, and Flexisip merges it with the user's own publication. It is
+ * never chosen in the picker, persisted or published: publishing it would fight the bridge and only
+ * ever reflect this device's own calls.
  */
 enum class UserPresence(val raw: String) {
     Online("online"),
     Away("away"),
     Busy("busy"),
     DoNotDisturb("doNotDisturb"),
-    Offline("offline");
+    Offline("offline"),
+    OnCall("onCall");
+
+    // Whether the user can choose this status for themselves (and so persist and publish it)
+    val isUserSelectable: Boolean
+        get() = this != OnCall
 
     // PIDF activity to publish for this status (null = no rpid:activity, plain "open" tuple)
     val activityType: PresenceActivity.Type?
@@ -44,6 +54,7 @@ enum class UserPresence(val raw: String) {
             Busy -> PresenceActivity.Type.Busy
             DoNotDisturb -> PresenceActivity.Type.Other
             Offline -> PresenceActivity.Type.PermanentAbsence
+            OnCall -> null // Never published, see the class comment
         }
 
     @ColorRes
@@ -53,6 +64,7 @@ enum class UserPresence(val raw: String) {
         Busy -> R.color.blue_info_500
         DoNotDisturb -> R.color.red_danger_500
         Offline -> R.color.gray_main2_400
+        OnCall -> R.color.yellow_on_call
     }
 
     @StringRes
@@ -62,13 +74,42 @@ enum class UserPresence(val raw: String) {
         Busy -> R.string.presence_status_busy
         DoNotDisturb -> R.string.presence_status_do_not_disturb
         Offline -> R.string.presence_status_available
+        OnCall -> R.string.presence_status_on_call
     }
 
     companion object {
         const val DND_DESCRIPTION = "dnd"
 
         fun fromRaw(raw: String?): UserPresence =
-            entries.firstOrNull { it.raw == raw } ?: Online
+            entries.firstOrNull { it.raw == raw && it.isUserSelectable } ?: Online
+
+        /**
+         * True when any activity is the call-state bridge's on-the-phone. Flexisip merges each
+         * publication's activities into one document in no stable order (and the bridge's can
+         * briefly appear twice), so every activity is checked, not just the first. Only an open
+         * basic status counts; the bridge always publishes an open tuple.
+         */
+        fun isOnCall(basicStatus: PresenceBasicStatus?, activityTypes: List<PresenceActivity.Type>): Boolean =
+            basicStatus == PresenceBasicStatus.Open && activityTypes.contains(PresenceActivity.Type.OnThePhone)
+
+        /**
+         * The user's own activity from a merged presence document: the first one that isn't the
+         * call-state bridge's on-the-phone. Reading [PresenceModel.getActivity] alone would give
+         * on-the-phone whenever it lands first, and that would map to Available.
+         */
+        fun userActivity(model: PresenceModel?): PresenceActivity? {
+            model ?: return null
+            for (i in 0 until model.nbActivities) {
+                val activity = model.getNthActivity(i) ?: continue
+                if (activity.type != PresenceActivity.Type.OnThePhone) return activity
+            }
+            return null
+        }
+
+        fun activityTypes(model: PresenceModel?): List<PresenceActivity.Type> {
+            model ?: return emptyList()
+            return (0 until model.nbActivities).mapNotNull { model.getNthActivity(it)?.type }
+        }
 
         // Maps the SDK activity dimension to a display status (spec §5).
         // The consolidatedPresence dimension is combined on top of this in
