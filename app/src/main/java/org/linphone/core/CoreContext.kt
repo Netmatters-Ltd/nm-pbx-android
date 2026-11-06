@@ -725,6 +725,7 @@ class CoreContext
     @WorkerThread
     private fun onCoreStopped() {
         Log.w("$TAG Core is being shut down, notifying managers so they can remove their listeners and do some cleanup if needed")
+        presenceManager.onCoreStopped()
         contactsManager.onCoreStopped(core)
         telecomManager.onCoreStopped(core)
         notificationsManager.onCoreStopped(core)
@@ -823,7 +824,7 @@ class CoreContext
                 // saved/server status directly.
                 Log.i("$TAG App is in foreground, re-enabling presence publishing")
                 setPublishEnabledOnDefaultAccount(true)
-                presenceManager.restoreOrGoOnline()
+                presenceManager.syncWithServer()
             }
 
             if (corePreferences.keepServiceAlive && !keepAliveServiceStarted) {

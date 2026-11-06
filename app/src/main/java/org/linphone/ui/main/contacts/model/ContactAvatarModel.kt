@@ -31,6 +31,7 @@ import org.linphone.core.ConsolidatedPresence
 import org.linphone.core.Friend
 import org.linphone.core.FriendListenerStub
 import org.linphone.core.SecurityLevel
+import org.linphone.core.SharedStatus
 import org.linphone.core.UserPresence
 import org.linphone.core.tools.Log
 import org.linphone.utils.AppUtils
@@ -212,8 +213,25 @@ class ContactAvatarModel
             presenceModel?.basicStatus,
             UserPresence.activityTypes(presenceModel)
         )
+        // Where the phone server publishes a shared status for the extension, it is the status and
+        // message the user chose, whatever the individual apps' tuples or pooled activities say
+        val tuples = SharedStatus.tuples(presenceModel)
+        val shared = SharedStatus.findShared(tuples)
+        if (shared != null) {
+            Log.i(
+                "$TAG Friend [${friend.name}] shared status is [${shared.status.raw}] with note [${shared.note}], tuples ${tuples.map { it.id }}"
+            )
+        }
         val userStatus = when {
             onCall -> UserPresence.OnCall
+            shared != null -> when {
+                // Away, Busy and DND show even with none of their apps connected
+                shared.status != UserPresence.Online -> shared.status
+                // The server's tuple is closed for Available: online only if something else is
+                tuples.any { !it.id.startsWith(SharedStatus.SHARED_PREFIX) && it.open } ->
+                    UserPresence.Online
+                else -> UserPresence.Offline
+            }
             else -> when (presence) {
                 ConsolidatedPresence.Online ->
                     if (mapped == UserPresence.Offline) UserPresence.Online else mapped
@@ -225,7 +243,7 @@ class ContactAvatarModel
         presenceActivity.postValue(activityType)
         presenceUserStatus.postValue(userStatus)
 
-        val note = presenceModel?.getNote(null)?.content.orEmpty()
+        val note = shared?.note ?: presenceModel?.getNote(null)?.content.orEmpty()
         presenceNote.postValue(note)
 
         val visible = userStatus != UserPresence.Offline

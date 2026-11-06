@@ -254,7 +254,7 @@ class MainViewModel
                             account.params = clone
                             Log.i("$TAG Re-enabled presence publishing on default account")
                         }
-                        coreContext.presenceManager.restoreOrGoOnline()
+                        coreContext.presenceManager.syncWithServer()
                     } else {
                         // If no call and no account is in Failed state, hide top bar
                         val found = core.accountList.find {

@@ -37,17 +37,25 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import org.linphone.LinphoneApplication.Companion.coreContext
 import org.linphone.R
+import org.linphone.core.SharedStatus
 import org.linphone.core.UserPresence
 
 @UiThread
 class PresencePickerDialogFragment : BottomSheetDialogFragment() {
     companion object {
-        private const val MAX_NOTE_LENGTH = 80
+        private const val MAX_NOTE_LENGTH = SharedStatus.MAX_NOTE_LENGTH
     }
 
     private lateinit var noteEditText: AppCompatEditText
 
     private var currentStatus: UserPresence = UserPresence.Online
+
+    // True once the user has typed in the note field. Until then the field follows the note shown
+    // in the header (which can change from another device while the picker is open), and closing
+    // the picker doesn't publish anything.
+    private var noteEdited = false
+
+    private var updatingNoteFromModel = false
 
     // Offline is intentionally excluded from the picker
     private val rowViews = mutableMapOf<UserPresence, View>()
@@ -78,8 +86,10 @@ class PresencePickerDialogFragment : BottomSheetDialogFragment() {
         updateChecks()
 
         val savedNote = coreContext.presenceManager.customStatusNote.value.orEmpty()
+        updatingNoteFromModel = true
         noteEditText.setText(savedNote)
         noteEditText.setSelection(savedNote.length)
+        updatingNoteFromModel = false
         charCount.text = "${savedNote.length}/$MAX_NOTE_LENGTH"
         clear.visibility = if (savedNote.isEmpty()) View.GONE else View.VISIBLE
 
@@ -87,6 +97,7 @@ class PresencePickerDialogFragment : BottomSheetDialogFragment() {
             val length = editable?.length ?: 0
             charCount.text = "$length/$MAX_NOTE_LENGTH"
             clear.visibility = if (length == 0) View.GONE else View.VISIBLE
+            if (!updatingNoteFromModel) noteEdited = true
         }
 
         clear.setOnClickListener {
@@ -115,12 +126,21 @@ class PresencePickerDialogFragment : BottomSheetDialogFragment() {
             currentStatus = presence ?: UserPresence.Online
             updateChecks()
         }
+
+        coreContext.presenceManager.customStatusNote.observe(viewLifecycleOwner) { note ->
+            val text = note.orEmpty()
+            if (noteEdited || noteEditText.text?.toString() == text) return@observe
+            updatingNoteFromModel = true
+            noteEditText.setText(text)
+            noteEditText.setSelection(text.length)
+            updatingNoteFromModel = false
+        }
     }
 
     override fun onDismiss(dialog: DialogInterface) {
-        // Flush any pending note even if the user didn't press Done (mirrors iOS .onDisappear).
-        // The extra publish is idempotent.
-        if (::noteEditText.isInitialized) {
+        // Flush an edited note even if the user didn't press Done (mirrors iOS .onDisappear).
+        // Setting the same status and note again is not a new choice, so this is idempotent.
+        if (::noteEditText.isInitialized && noteEdited) {
             coreContext.presenceManager.setPresence(currentStatus, noteEditText.text.toString())
         }
         super.onDismiss(dialog)
